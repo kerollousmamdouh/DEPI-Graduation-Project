@@ -82,75 +82,116 @@ function AppContent() {
   };
 
   const addToCart = (product, requestedAmount) => {
-    if (!currentUser) {
-      setCartWarning("يجب تسجيل الدخول أولاً لإضافة منتجات إلى السلة!");
-      
-      setTimeout(() => {
-        setCartWarning("");
-        navigate("/login"); 
-      }, 2000);
-      return;
+  if (!currentUser) {
+    setCartWarning("يجب تسجيل الدخول أولاً لإضافة منتجات إلى السلة!");
+    
+    setTimeout(() => {
+      setCartWarning("");
+      navigate("/login"); 
+    }, 2000);
+    return;
+  }
+
+  playSuccessSound();
+
+  setCartItems((prevItems) => {
+    // 1. حساب الكمية الإجمالية الموجودة حالياً بالسلة للمنتج
+    const alreadyInCart = prevItems
+      .filter((item) => item.id === product.id)
+      .reduce((sum, item) => sum + (product.isWeightType ? (item.weightGrams || 0) : (item.quantity || 0)), 0);
+
+    const totalDesired = alreadyInCart + requestedAmount;
+    
+    // حماية المخزون الكلي
+    if (totalDesired > (product.stock || 0)) {
+      return prevItems;
     }
-    playSuccessSound();
-    setCartItems((prevItems) => {
-      const alreadyInCart = prevItems
-        .filter((item) => item.id === product.id)
-        .reduce((sum, item) => sum + (product.isWeightType ? (item.weightGrams || 0) : (item.quantity || 0)), 0);
 
-      const totalDesired = alreadyInCart + requestedAmount;
-      if (totalDesired > (product.stock || 0)) {
-        return prevItems;
+    // نسخ المصفوفة بأمان
+    let newItems = [...prevItems];
+    let remainingToProcess = requestedAmount;
+    // فحص هل العرض ساري بالوقت وهل لا يزال هناك مخزن كلي بالمتجر؟
+      const isTimeBoundAndActive = 
+        product?.offerExpiresAt && 
+        (new Date() < new Date(product.offerExpiresAt)) && 
+        (product.stock - alreadyInCart > 0);
+
+      let takeFromOffer;
+
+      if (isTimeBoundAndActive) {
+        // حالة (1): العرض بوقت والمخزن متاح -> خذ الكمية بالكامل بسعر العرض (لا يوجد ليميت لمخزون العرض)
+        takeFromOffer = remainingToProcess;
+      } else {
+    // 2. حساب الكمية الموجودة بالفعل في السلة من "العرض المخفض"
+    const alreadyInOffer = newItems
+      .filter(i => i.id === product.id && i.isOfferItem === true)
+      .reduce((sum, i) => sum + (product.isWeightType ? (i.weightGrams || 0) : (i.quantity || 0)), 0);
+    
+    const offerAvailable = Math.max(0, (product.offerStock || 0) - alreadyInOffer);
+     takeFromOffer = Math.min(remainingToProcess, offerAvailable);
       }
-
-      let newItems = [...prevItems];
-      let remainingToProcess = requestedAmount;
-
-      const alreadyInOffer = newItems
-        .filter(i => i.id === product.id && i.isOfferItem === true)
-        .reduce((sum, i) => sum + (product.isWeightType ? (i.weightGrams || 0) : (i.quantity || 0)), 0);
+    // --- معالجة جزء العرض ---
+    if (takeFromOffer > 0) {
+      const index = newItems.findIndex(i => i.id === product.id && i.isOfferItem === true);
       
-      const offerAvailable = Math.max(0, (product.offerStock || 0) - alreadyInOffer);
-
-      const takeFromOffer = Math.min(remainingToProcess, offerAvailable);
-      if (takeFromOffer > 0) {
-        const index = newItems.findIndex(i => i.id === product.id && i.isOfferItem === true);
-        if (index > -1) {
-          newItems[index].quantity += product.isWeightType ? 0 : takeFromOffer;
-          newItems[index].weightGrams += product.isWeightType ? takeFromOffer : 0;
-          const totalQty = newItems[index].weightGrams || newItems[index].quantity;
-          newItems[index].price = product.isWeightType ? (product.offerPrice * totalQty) / 1000 : (product.offerPrice * totalQty);
+      if (index > -1) {
+        // نسخ كائن العنصر بشكل عميق لتجنب الـ Mutation
+        const updatedItem = { ...newItems[index] };
+        
+        if (product.isWeightType) {
+          updatedItem.weightGrams += takeFromOffer;
+          updatedItem.price = (product.offerPrice * updatedItem.weightGrams) / 1000;
         } else {
-          newItems.push({ 
-            ...product, 
-            isOfferItem: true, 
-            quantity: product.isWeightType ? 1 : takeFromOffer, 
-            weightGrams: product.isWeightType ? takeFromOffer : 0, 
-            price: product.isWeightType ? (product.offerPrice * takeFromOffer) / 1000 : (product.offerPrice * takeFromOffer) 
-          });
+          updatedItem.quantity += takeFromOffer;
+          updatedItem.price = product.offerPrice * updatedItem.quantity;
         }
-        remainingToProcess -= takeFromOffer;
+        
+        newItems[index] = updatedItem;
+      } else {
+        // إضافة جديدة للعرض
+        newItems.push({ 
+          ...product, 
+          isOfferItem: true, 
+          quantity: product.isWeightType ? 0 : takeFromOffer, // جعلها 0 للوزن حتى لا تختلط الحسابات
+          weightGrams: product.isWeightType ? takeFromOffer : 0, 
+          price: product.isWeightType ? (product.offerPrice * takeFromOffer) / 1000 : (product.offerPrice * takeFromOffer) 
+        });
       }
+      remainingToProcess -= takeFromOffer;
+    }
 
-      if (remainingToProcess > 0) {
-        const index = newItems.findIndex(i => i.id === product.id && i.isOfferItem === false);
-        if (index > -1) {
-          newItems[index].quantity += product.isWeightType ? 0 : remainingToProcess;
-          newItems[index].weightGrams += product.isWeightType ? remainingToProcess : 0;
-          const totalQty = newItems[index].weightGrams || newItems[index].quantity;
-          newItems[index].price = product.isWeightType ? (product.price * totalQty) / 1000 : (product.price * totalQty);
+    // --- معالجة جزء السعر العادي ---
+    if (remainingToProcess > 0) {
+      const index = newItems.findIndex(i => i.id === product.id && i.isOfferItem === false);
+      
+      if (index > -1) {
+        // نسخ كائن العنصر بشكل عميق
+        const updatedItem = { ...newItems[index] };
+        
+        if (product.isWeightType) {
+          updatedItem.weightGrams += remainingToProcess;
+          updatedItem.price = (product.price * updatedItem.weightGrams) / 1000;
         } else {
-          newItems.push({ 
-            ...product, 
-            isOfferItem: false, 
-            quantity: product.isWeightType ? 1 : remainingToProcess, 
-            weightGrams: product.isWeightType ? remainingToProcess : 0, 
-            price: product.isWeightType ? (product.price * remainingToProcess) / 1000 : (product.price * remainingToProcess) 
-          });
+          updatedItem.quantity += remainingToProcess;
+          updatedItem.price = product.price * updatedItem.quantity;
         }
+        
+        newItems[index] = updatedItem;
+      } else {
+        // إضافة جديدة للسعر العادي
+        newItems.push({ 
+          ...product, 
+          isOfferItem: false, 
+          quantity: product.isWeightType ? 0 : remainingToProcess, 
+          weightGrams: product.isWeightType ? remainingToProcess : 0, 
+          price: product.isWeightType ? (product.price * remainingToProcess) / 1000 : (product.price * remainingToProcess) 
+        });
       }
-      return newItems;
-    });
-  };
+    }
+
+    return newItems;
+  });
+};
 
   // 📦 دالة تأكيد الأوردر وإتمام الشراء
   const handleCheckout = (paymentMethod) => {

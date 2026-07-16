@@ -49,7 +49,7 @@ export const initialAdminData = {
 
   products: [
     { id: 1, categoryId: 3, name: { ar: "أرز الضحى 1كجم", en: "Al Doha Rice 1kg" }, price: 35, offerPrice: null, stock: 50, image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=400&q=80" },
-    { id: 2, categoryId: 3, name: { ar: "مكرونة الملكة 400 جرام", en: "El Maleka Pasta 400g" }, price: 15, offerPrice: 12, stock: 120, offerStock: 60, offerExpiresAt: "2026-07-25T23:59:59.000Z", image: "https://images.unsplash.com/photo-1621961404018-8199d42f7b16?auto=format&fit=crop&w=400&q=80" },
+    { id: 2, categoryId: 3, name: { ar: "مكرونة الملكة 400 جرام", en: "El Maleka Pasta 400g" }, price: 15, offerPrice: 12, stock: 120, offerExpiresAt: "2026-07-25T23:59:59.000Z", image: "https://images.unsplash.com/photo-1621961404018-8199d42f7b16?auto=format&fit=crop&w=400&q=80" },
     { id: 3, categoryId: 3, name: { ar: "زيت عباد الشمس كريستال 1 لتر", en: "Crystal Sunflower Oil 1L" }, price: 80, offerPrice: null, stock: 30, image: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=400&q=80" },
     { id: 4, categoryId: 3, name: { ar: "صلصة طماطم فاين فودز 360 جرام", en: "Fine Foods Tomato Paste 360g" }, price: 25, offerPrice: 21, stock: 85, offerStock: 40, offerExpiresAt: null, image: "https://images.unsplash.com/photo-1607305387299-a3d9611cd46f?auto=format&fit=crop&w=400&q=80" },
     { id: 5, categoryId: 3, name: { ar: "سكر الأسرة 1كجم", en: "Al Osra Sugar 1kg" }, price: 40, offerPrice: null, stock: 45, image: "https://images.unsplash.com/photo-1581798459219-318e76aecc7b?auto=format&fit=crop&w=400&q=80" },

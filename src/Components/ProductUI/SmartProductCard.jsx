@@ -58,20 +58,29 @@ function SmartProductCard({
 
     if (!hasValidPrices) return false;
 
-    // أ) الفحص الكمي: لو مخزون العرض انتهى بالكامل، يسقط العرض فوراً
-    if (product.offerStock !== undefined && remainingOfferStock <= 0) {
-      return false;
-    }
-
-    // ب) الفحص الزمني: لو العرض بوقت وانتهى زمنياً، يسقط العرض
+    // أ) الفحص الزمني + فحص نفاد المخزن الكلي أثناء العرض الزمني
     if (product?.offerExpiresAt) {
       const expirationDate = new Date(product.offerExpiresAt);
+      
+      // 1. لو العرض بوقت وانتهى زمنياً -> يسقط العرض فوراً
       if (new Date() >= expirationDate) return false;
+      
+      // 2. لو العرض بوقت ولكن بضاعة المحل الإجمالية خلصت بالكامل -> يسقط العرض فوراً
+      if (product.stock !== undefined && currentStock <= 0) {
+        return false;
+      }
+      
+      // طالما الوقت ساري والمخزن الكلي فيه بضاعة، العرض شغال وبدون ليميت لمخزن العرض
+      return true;
+    }
+
+    // ب) الفحص الكمي للعروض العادية (حتى نفاد الكمية - التي ليس لها تاريخ انتهاء)
+    if (product?.offerStock !== undefined && remainingOfferStock <= 0) {
+      return false;
     }
 
     return true;
   })();
-
   const discountPercentage = hasOffer
     ? Math.round(((Number(product.price) - Number(product.offerPrice)) / Number(product.price)) * 100)
     : 0;

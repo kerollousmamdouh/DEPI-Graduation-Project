@@ -528,28 +528,36 @@ export const SiteProvider = ({ children }) => {
     }
   };
 
-  const adminReplyToMessage = (msgId, replyText) => {
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === msgId
-          ? { ...msg, replyText: replyText, isReplied: true }
-          : msg,
-      ),
-    );
+  const adminReplyToMessage = (msgId, replyText, fileBase64 = null) => {
+  setMessages((prev) =>
+    prev.map((msg) =>
+      msg.id === msgId
+        ? { ...msg, replyText: replyText, replyFile: fileBase64, isReplied: true }
+        : msg,
+    ),
+  );
 
-    setSupportTickets((prev) =>
-      prev.map((t) =>
-        t.id === msgId || t.subject === msgId
-          ? {
-              ...t,
-              status: "REPLIED",
-              messages: [...t.messages, { sender: "admin", text: replyText }],
-            }
-          : t,
-      ),
-    );
-  };
-
+  setSupportTickets((prev) =>
+    prev.map((t) =>
+      t.id === msgId || t.subject === msgId
+        ? {
+            ...t,
+            status: "REPLIED",
+            messages: [
+              ...t.messages, 
+              { 
+                sender: "admin", 
+                text: replyText, 
+                file: fileBase64, // تفعيل إرسال الملف من الأدمن هنا
+                time: new Date().toLocaleTimeString(),
+                createdAt: new Date().toISOString()
+              }
+            ],
+          }
+        : t,
+    ),
+  );
+};
   return (
     <SiteContext.Provider
       value={{

@@ -2,9 +2,9 @@ import { useContext } from 'react';
 import { SiteContext } from '../../Store/SiteContext'; // 👈 تأكد من صحة مسار الـ Context عندك
 import CategoryCard from './CategoryCard';
 
-function CategoriesSection() {
+function CategoriesSection({lang}) {
   // 📥 سحب البيانات واللغة وحالة التحميل مباشرة من الـ Context
-  const { adminData, lang, isLoading } = useContext(SiteContext);
+  const { adminData, isLoading } = useContext(SiteContext);
 
   // ⏳ حالة التحميل: لو الباك اند لسه بيجيب الداتا، ممكن تعرض Skeleton أو تسيبه يعرض الداتا الافتراضية
   if (isLoading) {

@@ -160,7 +160,9 @@ const UserProfile = () => {
     newPassword: "",
   }));
 
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem("dealora_profile_active_tab") || "dashboard";
+  });
   const [infoMessage, setInfoMessage] = useState({ text: "", isError: false });
   const [imgError, setImgError] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -174,6 +176,10 @@ const UserProfile = () => {
 
   const userPhotoSrc = currentUser?.image || null;
 
+  // حفظ التابة الحالية في الـ LocalStorage علشان تفتكرها بعد الريفرش
+  useEffect(() => {
+    localStorage.setItem("dealora_profile_active_tab", activeTab);
+  }, [activeTab]);
   useEffect(() => {
     if (!currentUser) {
       navigate("/login");
@@ -406,7 +412,7 @@ const UserProfile = () => {
 
     if (sendOrderChangeRequest && orderToContact) {
       // تفصيل البيانات وتنسيقها بشكل جميل عبر استخدام الخطوط الفاصلة لإعطاء مظهر منسق ومنفصل تماماً
-      const formattedMessage = isAr 
+      const formattedMessage = isAr
         ? `🚨 [طلب تعديل] 🚨\n----------------------------------\n📦 رقم الطلب: #${orderToContact.id}\n----------------------------------\n💬 نص الرسالة:\n${orderMessageText}`
         : `🚨 [Change Request] 🚨\n----------------------------------\n📦 Order ID: #${orderToContact.id}\n----------------------------------\n💬 Message:\n${orderMessageText}`;
 
