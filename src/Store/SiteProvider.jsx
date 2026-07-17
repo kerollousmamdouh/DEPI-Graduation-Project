@@ -320,8 +320,9 @@ export const SiteProvider = ({ children }) => {
       items: orderPayload.items,
       totalPrice: orderPayload.totalPrice,
       customerDetails: orderPayload.customer,
-      paymentMethod: orderPayload.paymentMethod,
-      paymentDetails: orderPayload.paymentDetails || null,
+      paymentMethod: "paymob", // مثبتة دائماً كـ paymob بناء على التحديث الجديد
+      paymentDetails: null, // سيتم تحديثه برابط وبينات الدفع عند إتمام الربط مع الـ API
+      paymentUrl: orderPayload.paymentUrl || null,
       status: "pending",
       createdAt: orderPayload.createdAt || new Date().toISOString(),
     };
@@ -529,35 +530,36 @@ export const SiteProvider = ({ children }) => {
   };
 
   const adminReplyToMessage = (msgId, replyText, fileBase64 = null) => {
-  setMessages((prev) =>
-    prev.map((msg) =>
-      msg.id === msgId
-        ? { ...msg, replyText: replyText, replyFile: fileBase64, isReplied: true }
-        : msg,
-    ),
-  );
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === msgId
+          ? { ...msg, replyText: replyText, replyFile: fileBase64, isReplied: true }
+          : msg,
+      ),
+    );
 
-  setSupportTickets((prev) =>
-    prev.map((t) =>
-      t.id === msgId || t.subject === msgId
-        ? {
-            ...t,
-            status: "REPLIED",
-            messages: [
-              ...t.messages, 
-              { 
-                sender: "admin", 
-                text: replyText, 
-                file: fileBase64, // تفعيل إرسال الملف من الأدمن هنا
-                time: new Date().toLocaleTimeString(),
-                createdAt: new Date().toISOString()
-              }
-            ],
-          }
-        : t,
-    ),
-  );
-};
+    setSupportTickets((prev) =>
+      prev.map((t) =>
+        t.id === msgId || t.subject === msgId
+          ? {
+              ...t,
+              status: "REPLIED",
+              messages: [
+                ...t.messages, 
+                { 
+                  sender: "admin", 
+                  text: replyText, 
+                  file: fileBase64,
+                  time: new Date().toLocaleTimeString(),
+                  createdAt: new Date().toISOString()
+                }
+              ],
+            }
+          : t,
+      ),
+    );
+  };
+
   return (
     <SiteContext.Provider
       value={{
@@ -593,8 +595,6 @@ export const SiteProvider = ({ children }) => {
         createTicket,
         editTicket,
         deleteTicket,
-
-        // 🔔 الدوال والحالات الموحدة والجاهزة للاستدعاء مباشرة
         announcement,
         publishAnnouncement,
         clearAnnouncement,

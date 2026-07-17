@@ -451,14 +451,16 @@ const UserProfile = () => {
     switch (s) {
       case "PENDING":
         return "قيد الانتظار";
+      case "PAID":
+        return "تم الدفع";
       case "PROCESSING":
       case "IN PROGRESS":
         return "جاري التجهيز";
       case "SHIPPED":
-        return "تم الشحن";
+        return "جاري التوصيل";
       case "COMPLETED":
       case "DELIVERED":
-        return "مكتمل";
+        return "تم التوصيل";
       case "CANCELED":
       case "CANCELLED":
         return "ملغي";
@@ -466,25 +468,37 @@ const UserProfile = () => {
         return s;
     }
   };
-
   const getStatusClass = (status) => {
     switch (String(status).toUpperCase()) {
       case "PENDING":
         return "bg-amber-50 text-amber-600 border border-amber-100 px-2.5 py-1 rounded-full text-[10px] font-bold inline-block";
-      case "IN PROGRESS":
+
+      case "PAID":
+        // لون أزرق مميز يدل على إتمام عملية الدفع الإلكتروني بنجاح
+        return "bg-blue-50 text-blue-600 border border-blue-100 px-2.5 py-1 rounded-full text-[10px] font-bold inline-block";
+
       case "PROCESSING":
+      case "IN PROGRESS":
+        // لون برتقالي يدل على أن الأدمن يجهز البضاعة حالياً
         return "bg-orange-50 text-orange-600 border border-orange-100 px-2.5 py-1 rounded-full text-[10px] font-bold inline-block";
+
+      case "SHIPPED":
+        // لون سماوي/أزرق فاتح يدل على أن الأوردر مع المندوب وفي الطريق للعميل
+        return "bg-sky-50 text-sky-600 border border-sky-100 px-2.5 py-1 rounded-full text-[10px] font-bold inline-block";
+
       case "COMPLETED":
       case "DELIVERED":
+        // لون أخضر صريح يدل على وصول الشحنة وإتمام دورتها بنجاح
         return "bg-emerald-50 text-emerald-600 border border-emerald-100 px-2.5 py-1 rounded-full text-[10px] font-bold inline-block";
+
       case "CANCELED":
       case "CANCELLED":
         return "bg-rose-50 text-rose-600 border border-rose-100 px-2.5 py-1 rounded-full text-[10px] font-bold inline-block";
+
       default:
         return "bg-gray-50 text-gray-600 border border-gray-100 px-2.5 py-1 rounded-full text-[10px] font-bold inline-block";
     }
   };
-
   const isPending = (status) => {
     return String(status).toUpperCase() === "PENDING";
   };
@@ -834,72 +848,83 @@ const UserProfile = () => {
                   </div>
                 )}
 
-                {/* ================= TABS 2: ORDER HISTORY ================= */}
-                {activeTab === "orders" && (
-                  <div className="bg-white rounded-xl border border-gray-200/60 shadow-3xs overflow-hidden">
-                    <div className="p-4 border-b border-gray-100 font-bold text-sm text-gray-800 text-start">
-                      {t.orderHistory}
-                    </div>
-                    <div className="overflow-x-auto">
-                      {realOrders.length === 0 ? (
-                        <div className="p-10 text-center space-y-3">
-                          <p className="text-xs text-gray-400">{t.noOrders}</p>
-                        </div>
-                      ) : (
-                        <table className="w-full border-collapse text-xs text-start">
-                          <thead>
-                            <tr className="bg-gray-50/70 text-gray-400 uppercase font-bold border-b border-gray-100">
-                              <th className="p-3">{t.orderId}</th>
-                              <th className="p-3">{t.status}</th>
-                              <th className="p-3">{t.total}</th>
-                              <th className="p-3 text-center">{t.actions}</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-50">
-                            {realOrders.map((order) => (
-                              <tr
-                                key={order.id}
-                                onClick={() => setSelectedOrder(order)}
-                                className="text-gray-600 hover:bg-gray-50/50 cursor-pointer whitespace-nowrap"
-                              >
-                                <td className="p-3 font-bold text-gray-900">
-                                  {renderText(order.id)}
-                                </td>
-                                <td className="p-3">
-                                  <span
-                                    className={getStatusClass(order.status)}
-                                  >
-                                    {getStatusTranslation(order.status)}
-                                  </span>
-                                </td>
-                                <td className="p-3 font-bold text-gray-900">
-                                  {renderText(order.total || order.totalPrice)}{" "}
-                                  EGP
-                                </td>
-                                <td
-                                  className="p-3 text-center"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {isPending(order.status) && (
-                                    <button
-                                      onClick={(e) =>
-                                        handleSendMessageClick(e, order)
-                                      }
-                                      className="text-[9px] bg-green-50 text-green-600 border border-green-100 px-2 py-1 rounded-md font-bold"
-                                    >
-                                      {t.sendMessage}
-                                    </button>
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                  </div>
-                )}
+               {/* ================= TABS 2: ORDER HISTORY ================= */}
+{activeTab === "orders" && (
+  <div className="bg-white rounded-xl border border-gray-200/60 shadow-3xs overflow-hidden">
+    <div className="p-4 border-b border-gray-100 font-bold text-sm text-gray-800 text-start">
+      {t.orderHistory}
+    </div>
+    <div className="overflow-x-auto">
+      {realOrders.length === 0 ? (
+        <div className="p-10 text-center space-y-3">
+          <p className="text-xs text-gray-400">{t.noOrders}</p>
+        </div>
+      ) : (
+        <table className="w-full border-collapse text-xs text-start">
+          <thead>
+            <tr className="bg-gray-50/70 text-gray-400 uppercase font-bold border-b border-gray-100">
+              <th className="p-3">{t.orderId}</th>
+              <th className="p-3">{t.status}</th>
+              <th className="p-3">{t.total}</th>
+              <th className="p-3 text-center">{t.actions}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {realOrders.map((order) => (
+              <tr
+                key={order.id}
+                onClick={() => setSelectedOrder(order)}
+                className="text-gray-600 hover:bg-gray-50/50 cursor-pointer whitespace-nowrap"
+              >
+                <td className="p-3 font-bold text-gray-900">
+                  {renderText(order.id)}
+                </td>
+                <td className="p-3">
+                  <span className={getStatusClass(order.status)}>
+                    {getStatusTranslation(order.status)}
+                  </span>
+                </td>
+                <td className="p-3 font-bold text-gray-900">
+                  {renderText(order.total || order.totalPrice)} EGP
+                </td>
+                <td
+                  className="p-3 text-center"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    {/* 👇 زر إكمال الدفع المضاف 👇 */}
+                    {isPending(order.status) && order.paymentUrl && (
+                      <button
+                        onClick={() => {
+                          window.location.href = order.paymentUrl;
+                        }}
+                        className="text-[9px] bg-blue-600 text-white hover:bg-blue-700 px-2.5 py-1 rounded-md font-bold transition-colors shadow-2xs"
+                      >
+                        💳 {t.payNow || "دفع الآن"}
+                      </button>
+                    )}
 
+                    {/* زر إرسال الرسالة الحالي */}
+                    {isPending(order.status) && (
+                      <button
+                        onClick={(e) =>
+                          handleSendMessageClick(e, order)
+                        }
+                        className="text-[9px] bg-green-50 text-green-600 border border-green-100 px-2 py-1 rounded-md font-bold hover:bg-green-100/50 transition-colors"
+                      >
+                        {t.sendMessage}
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  </div>
+)}
                 {/* ================= TABS 3: SETTINGS & PASSWORD ================= */}
                 {activeTab === "info" && (
                   <div className="space-y-4 text-start pb-6">
