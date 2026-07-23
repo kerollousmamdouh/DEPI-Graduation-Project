@@ -1,0 +1,81 @@
+{
+  "module": "Favorites",
+  "basePath": "/api/favorites",
+  "description": "User favorites/wishlist management - toggle and list favorite products",
+  "authentication": "Bearer JWT token required for all endpoints",
+  "endpoints": [
+    {
+      "name": "Get My Favorites",
+      "method": "GET",
+      "path": "/api/favorites",
+      "auth": true,
+      "roles": ["customer"],
+      "description": "Retrieve all favorite products for the logged-in user",
+      "frontendUsage": {
+        "usedBy": "Storefront Favorites/Wishlist Page",
+        "frontendDescription": "Displays grid of favorited products with image, name, price, and remove-from-favorites button"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": [
+            {
+              "favorite_id": { "type": "number", "example": 1 },
+              "created_at": { "type": "string", "format": "datetime" },
+              "product_id": { "type": "number", "example": 5 },
+              "name": { "type": "string", "example": "Wireless Headphones" },
+              "product_image": { "type": "string", "example": "https://example.com/product.jpg" },
+              "unit": { "type": "string", "example": "piece" },
+              "price": { "type": "number", "example": 99.99 },
+              "discount_price": { "type": "number", "nullable": true, "example": 79.99 },
+              "current_price": { "type": "number", "example": 79.99 }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Product card grid (similar to main catalog) with filled heart icon, product image, name, price with offer badge, and 'Add to Cart' button"
+    },
+    {
+      "name": "Toggle Favorite",
+      "method": "POST",
+      "path": "/api/favorites/toggle",
+      "auth": true,
+      "roles": ["customer"],
+      "description": "Add or remove a product from favorites (toggle behavior)",
+      "frontendUsage": {
+        "usedBy": "Storefront Product Card, Product Detail Page",
+        "frontendDescription": "Called when user clicks heart icon on product card or product detail page. Adds if not favorited, removes if already favorited."
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "body": {
+          "product_id": { "type": "number", "required": true, "example": 5 }
+        }
+      },
+      "response": {
+        "added": {
+          "statusCode": 201,
+          "body": {
+            "message": { "type": "string", "example": "Added to favorites" },
+            "isFavorite": { "type": "boolean", "example": true }
+          }
+        },
+        "removed": {
+          "statusCode": 200,
+          "body": {
+            "message": { "type": "string", "example": "Removed from favorites" },
+            "isFavorite": { "type": "boolean", "example": false }
+          }
+        }
+      },
+      "frontendDisplay": "Heart icon animates from outline to filled (added) or filled to outline (removed). Toast notification confirms action."
+    }
+  ]
+}

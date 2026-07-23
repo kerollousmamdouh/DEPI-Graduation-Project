@@ -1,0 +1,142 @@
+{
+  "module": "Banners",
+  "basePath": "/api/banners",
+  "description": "Homepage banner/slider management - public active banners and admin CRUD",
+  "endpoints": [
+    {
+      "name": "Get Active Banners",
+      "method": "GET",
+      "path": "/api/banners/active",
+      "auth": false,
+      "description": "Retrieve all active banners for storefront display",
+      "frontendUsage": {
+        "usedBy": "Storefront Homepage",
+        "frontendDescription": "Displays promotional banners on homepage carousel/slider. Shows image, title, subtitle, and CTA button linking to product or category."
+      },
+      "request": {},
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": [
+            {
+              "id": { "type": "number", "example": 1 },
+              "image_url": { "type": "string", "example": "https://example.com/banner.jpg" },
+              "product_id": { "type": "number", "nullable": true, "example": 5, "description": "Link to specific product" },
+              "category_id": { "type": "number", "nullable": true, "example": 3, "description": "Link to category page" },
+              "title": { "type": "string", "example": "Summer Sale" },
+              "subtitle": { "type": "string", "example": "Up to 50% off" },
+              "button_text": { "type": "string", "example": "Shop Now" }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Auto-rotating banner carousel on homepage with large image, overlay text (title + subtitle), and clickable button"
+    },
+    {
+      "name": "Get All Banners (Admin)",
+      "method": "GET",
+      "path": "/api/banners",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Retrieve all banners including inactive ones for admin management",
+      "frontendUsage": {
+        "usedBy": "Admin Banner Management Page",
+        "frontendDescription": "Displays banner list in admin table with preview, linked product/category, sort order, and status"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": [
+            {
+              "id": { "type": "number" },
+              "image_url": { "type": "string" },
+              "title_ar": { "type": "string" },
+              "title_en": { "type": "string", "nullable": true },
+              "subtitle_ar": { "type": "string", "nullable": true },
+              "subtitle_en": { "type": "string", "nullable": true },
+              "button_text_ar": { "type": "string", "nullable": true },
+              "button_text_en": { "type": "string", "nullable": true },
+              "product_id": { "type": "number", "nullable": true },
+              "category_id": { "type": "number", "nullable": true },
+              "sort_order": { "type": "number" },
+              "is_active": { "type": "boolean" },
+              "created_at": { "type": "string", "format": "datetime" }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Admin table with banner image preview, title, linked entity, sort order, active status toggle, and delete button"
+    },
+    {
+      "name": "Create Banner",
+      "method": "POST",
+      "path": "/api/banners",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Create a new promotional banner",
+      "frontendUsage": {
+        "usedBy": "Admin Banner Management Page",
+        "frontendDescription": "Called when admin submits Add Banner form with image, text, and optional product/category link"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "body": {
+          "title_ar": { "type": "string", "required": true, "example": "تخفيضات الصيف" },
+          "title_en": { "type": "string", "required": false, "example": "Summer Sale" },
+          "subtitle_ar": { "type": "string", "required": false, "example": "خصم يصل إلى 50%" },
+          "subtitle_en": { "type": "string", "required": false, "example": "Up to 50% off" },
+          "image_url": { "type": "string", "required": true, "example": "https://example.com/banner.jpg" },
+          "button_text_ar": { "type": "string", "required": false, "example": "تسوق الآن" },
+          "button_text_en": { "type": "string", "required": false, "example": "Shop Now" },
+          "product_id": { "type": "number", "required": false, "description": "Link banner to a product" },
+          "category_id": { "type": "number", "required": false, "description": "Link banner to a category" },
+          "sort_order": { "type": "number", "required": false, "default": 0, "description": "Display priority" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 201,
+          "body": {
+            "message": { "type": "string", "example": "Banner created successfully" },
+            "bannerId": { "type": "number", "example": 10 }
+          }
+        }
+      },
+      "frontendDisplay": "Shows success toast, refreshes banner list, closes add dialog"
+    },
+    {
+      "name": "Delete Banner",
+      "method": "DELETE",
+      "path": "/api/banners/:id",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Delete a banner",
+      "frontendUsage": {
+        "usedBy": "Admin Banner Management Page",
+        "frontendDescription": "Called when admin confirms banner deletion via confirmation dialog"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "params": {
+          "id": { "type": "number", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "message": "Banner deleted successfully" }
+        }
+      },
+      "frontendDisplay": "Confirmation dialog first, then success toast, banner removed from table"
+    }
+  ]
+}

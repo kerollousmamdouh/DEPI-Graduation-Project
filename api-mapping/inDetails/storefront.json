@@ -1,0 +1,209 @@
+{
+  "module": "Storefront",
+  "basePath": "Storefront-specific APIs",
+  "description": "Storefront (customer-facing) specific API calls including login, registration, and site context management",
+  "authentication": "Token-based: stores JWT in localStorage",
+  "tokenKeys": {
+    "login": "dealora_market_token",
+    "register": "dealora_token",
+    "admin": "dealora-auth-token"
+  },
+  "endpoints": [
+    {
+      "name": "Storefront Login",
+      "method": "POST",
+      "path": "https://api.dealoramarket.com/api/auth/login",
+      "auth": false,
+      "description": "Login for storefront customers",
+      "frontendUsage": {
+        "usedBy": "LoginPage.jsx (Storefront)",
+        "frontendDescription": "Authenticates customer and redirects based on role. Currently COMMENTED OUT - uses mock localStorage login instead.",
+        "currentStatus": "INACTIVE (commented out). Mock login checks admin credentials (admin/admin123) and localStorage-registered users."
+      },
+      "request": {
+        "body": {
+          "emailOrPhone": { "type": "string", "required": true, "example": "ahmed@example.com" },
+          "password": { "type": "string", "required": true, "example": "password123" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": {
+            "token": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIs..." },
+            "user": {
+              "role": { "type": "string", "enum": ["admin", "customer"], "example": "customer" },
+              "description": "Additional user fields"
+            }
+          }
+        },
+        "error": {
+          "statusCode": 401,
+          "body": { "message": "Invalid credentials" }
+        }
+      },
+      "frontendDisplay": "On success: admin users -> /dashboard, customers -> /home. Token stored in localStorage. Shows error toast on failure."
+    },
+    {
+      "name": "Send OTP (Registration Step 1)",
+      "method": "POST",
+      "path": "https://api.dealora-market.com/v1/auth/send-otp",
+      "auth": false,
+      "description": "Send verification OTP to email for registration",
+      "frontendUsage": {
+        "usedBy": "RegisterPage.jsx (Storefront)",
+        "frontendDescription": "First step of registration. User enters email and phone, OTP is sent to email. This is the ONLY actively used real API call in the storefront.",
+        "currentStatus": "ACTIVE - hits live server"
+      },
+      "request": {
+        "body": {
+          "email": { "type": "string", "required": true, "example": "ahmed@example.com", "validation": "regex: ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$" },
+          "phone": { "type": "string", "required": true, "example": "01012345678", "validation": "regex: ^0\\d{10}$ (11 digits starting with 0)" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "message": { "type": "string", "example": "OTP sent successfully" } }
+        },
+        "error": {
+          "statusCode": 400,
+          "body": { "message": "Email already registered" }
+        }
+      },
+      "frontendDisplay": "Shows success toast, form transitions to Step 2 (OTP input). Error message displayed under email field."
+    },
+    {
+      "name": "Verify OTP & Register (Registration Step 2)",
+      "method": "POST",
+      "path": "https://api.dealora-market.com/v1/auth/register-verify",
+      "auth": false,
+      "description": "Verify OTP and complete registration with full user data",
+      "frontendUsage": {
+        "usedBy": "RegisterPage.jsx (Storefront)",
+        "frontendDescription": "Second step of registration. Sends OTP code along with full registration details as FormData (multipart). On success, stores token and navigates to login.",
+        "currentStatus": "ACTIVE - hits live server"
+      },
+      "request": {
+        "headers": {
+          "Content-Type": "multipart/form-data"
+        },
+        "body": {
+          "fullName": { "type": "string", "required": true, "example": "Ahmed Ali" },
+          "email": { "type": "string", "required": true, "example": "ahmed@example.com" },
+          "phone": { "type": "string", "required": true, "example": "01012345678" },
+          "password": { "type": "string", "required": true, "minLength": 7, "example": "password123" },
+          "otp": { "type": "string", "required": true, "example": "123456", "validation": "Exactly 6 digits" },
+          "avatar": { "type": "file", "required": false, "description": "Profile picture (optional)" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": {
+            "token": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIs..." },
+            "user": {
+              "type": "object",
+              "description": "User object with profile details"
+            }
+          }
+        },
+        "error": {
+          "statusCode": 400,
+          "body": { "message": "Invalid OTP" }
+        }
+      },
+      "frontendDisplay": "Shows loading spinner during verification. On success: stores token as 'dealora_token' and user as 'user_info' in localStorage, navigates to /login. Error message displayed under OTP field."
+    },
+    {
+      "name": "Site Context (All localStorage)",
+      "method": "LOCAL",
+      "path": "SiteProvider.jsx context (no HTTP calls)",
+      "description": "Storefront site-wide state management via React Context + localStorage. Manages orders, tickets, profile, products, categories, and announcements entirely client-side.",
+      "frontendUsage": {
+        "usedBy": "SiteProvider.jsx (Storefront Context Provider)",
+        "frontendDescription": "Wraps entire storefront. Provides: currentUser, orders, products, categories, tickets, messages, announcement, and functions for all CRUD operations. All data persisted in localStorage."
+      },
+      "localStorageKeys": {
+        "dealora_market_admin_data": "Admin config, products, categories, hero slider data",
+        "dealora_market_orders": "Customer orders array",
+        "dealora_market_tickets": "Support tickets array",
+        "dealora_market_current_user": "Currently logged-in user object",
+        "dealora_market_token": "Auth token",
+        "dealora_market_users": "Registered users list",
+        "dealora_market_announcement": "Current announcement banner"
+      },
+      "functions": [
+        {
+          "name": "loginUser(user, token)",
+          "description": "Set current user and persist to localStorage"
+        },
+        {
+          "name": "logoutUser()",
+          "description": "Clear current user and token from state and localStorage"
+        },
+        {
+          "name": "updateProfileImage(base64Image)",
+          "description": "Update user avatar (base64 encoded)"
+        },
+        {
+          "name": "updateProfileData(formData)",
+          "description": "Update user profile fields"
+        },
+        {
+          "name": "updateUserPassword(oldPassword, newPassword)",
+          "description": "Change password (NOTE: does not verify old password)"
+        },
+        {
+          "name": "createOrder(orderPayload)",
+          "description": "Create new order, decrement product stock. Order shape: {id, items, totalPrice, customerDetails, paymentMethod, status, createdAt}"
+        },
+        {
+          "name": "updateOrderStatus(orderId, newStatus)",
+          "description": "Update order status"
+        },
+        {
+          "name": "createTicket(ticketText, fileBase64)",
+          "description": "Create support ticket"
+        },
+        {
+          "name": "editTicket(ticketId, updatedText)",
+          "description": "Edit ticket messages"
+        },
+        {
+          "name": "deleteTicket(ticketId)",
+          "description": "Delete a ticket"
+        },
+        {
+          "name": "clientSendMessage(msgData)",
+          "description": "Send contact form message"
+        },
+        {
+          "name": "adminReplyToMessage(msgId, replyText, fileBase64)",
+          "description": "Admin reply to contact message + sync to ticket"
+        },
+        {
+          "name": "publishAnnouncement(text, titleAr, titleEn, totalVal, totalUnit, colors)",
+          "description": "Create announcement banner with duration"
+        },
+        {
+          "name": "clearAnnouncement()",
+          "description": "Remove announcement banner"
+        },
+        {
+          "name": "addProduct/updateProduct/deleteProduct",
+          "description": "Product CRUD (adminData.products)"
+        },
+        {
+          "name": "addCategory/deleteCategory",
+          "description": "Category CRUD (adminData.categories)"
+        },
+        {
+          "name": "updateHeroSliders(newSliders)",
+          "description": "Replace hero slider data"
+        }
+      ],
+      "frontendDisplay": "Not directly displayed - powers all storefront data. Products appear in catalog, orders in order history, announcements as top banner, tickets in support section."
+    }
+  ]
+}

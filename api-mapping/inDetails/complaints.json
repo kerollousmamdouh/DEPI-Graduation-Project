@@ -1,0 +1,173 @@
+{
+  "module": "Complaints / Support Tickets",
+  "basePath": "/complaints",
+  "description": "Customer support ticket management - view tickets, reply, send direct messages, update status",
+  "authentication": "Admin endpoints require JWT token",
+  "dataStorage": "Currently mock (USE_MOCK=true) - localStorage key: 'dealora_market_tickets'",
+  "endpoints": [
+    {
+      "name": "Get All Complaints/Tickets",
+      "method": "GET",
+      "path": "/complaints",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Retrieve all support tickets",
+      "frontendUsage": {
+        "usedBy": "complaintService.js (Admin Support/Complaints Page)",
+        "frontendDescription": "Displays ticket list with client name, email, avatar, status badge, date, and message preview. Deduplicates IDs automatically.",
+        "mockStatus": "USE_MOCK=true - reads from localStorage key 'dealora_market_tickets'"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": [
+            {
+              "id": { "type": "string", "example": "TKT-1700000000000-abc1234" },
+              "clientName": { "type": "string", "example": "Ahmed Ali" },
+              "clientEmail": { "type": "string", "example": "ahmed@example.com" },
+              "avatar": { "type": "string", "nullable": true, "example": "https://example.com/avatar.jpg" },
+              "status": { "type": "string", "enum": ["PENDING", "REPLIED", "RESOLVED"], "example": "PENDING" },
+              "date": { "type": "string", "format": "datetime" },
+              "messages": {
+                "type": "array",
+                "items": {
+                  "id": { "type": "string" },
+                  "sender": { "type": "string", "enum": ["client", "admin"] },
+                  "text": { "type": "string" },
+                  "file": { "type": "string", "nullable": true },
+                  "time": { "type": "string" },
+                  "createdAt": { "type": "string" }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Ticket list with client avatar, name, email, status badge (PENDING=yellow, REPLIED=green, RESOLVED=gray), date, and last message preview. Click opens chat thread."
+    },
+    {
+      "name": "Reply To Complaint",
+      "method": "POST",
+      "path": "/complaints/:complaintId/reply",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Send an admin reply to a support ticket",
+      "frontendUsage": {
+        "usedBy": "complaintService.js (Admin Support/Complaints Page)",
+        "frontendDescription": "Called when admin types and sends a reply in the ticket chat thread. Optionally includes a file attachment.",
+        "mockStatus": "USE_MOCK=true - appends message to ticket's messages array"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "params": {
+          "complaintId": { "type": "string", "required": true }
+        },
+        "body": {
+          "text": { "type": "string", "required": true, "example": "We apologize for the inconvenience. Your refund has been processed." },
+          "fileUrl": { "type": "string", "required": false, "nullable": true, "example": "https://example.com/receipt.pdf" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "success": true }
+        }
+      },
+      "frontendDisplay": "New admin message appears in chat thread with sender 'admin', timestamp, and optional file attachment link. Ticket status changes to 'REPLIED'."
+    },
+    {
+      "name": "Send Direct Message To User",
+      "method": "POST",
+      "path": "/complaints/direct-message",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Send an unsolicited message to a user (creates ticket if none exists)",
+      "frontendUsage": {
+        "usedBy": "complaintService.js (Admin Support Page, User Management Page)",
+        "frontendDescription": "Called when admin sends a direct message to a customer from the Users page. Creates new ticket or replies to existing conversation.",
+        "mockStatus": "USE_MOCK=true - finds or creates ticket by customer email"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "body": {
+          "email": { "type": "string", "required": true, "example": "ahmed@example.com" },
+          "name": { "type": "string", "required": true, "example": "Ahmed Ali" },
+          "message": { "type": "string", "required": true, "example": "Your order has been shipped!" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "success": true }
+        }
+      },
+      "frontendDisplay": "Success toast, if ticket existed message appears in existing thread, if new ticket is created it shows in the ticket list"
+    },
+    {
+      "name": "Update Complaint Status",
+      "method": "PATCH",
+      "path": "/complaints/:complaintId/status",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Update the status of a support ticket",
+      "frontendUsage": {
+        "usedBy": "complaintService.js (Admin Support/Complaints Page)",
+        "frontendDescription": "Called when admin changes ticket status (e.g., PENDING -> REPLIED -> RESOLVED)"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "params": {
+          "complaintId": { "type": "string", "required": true }
+        },
+        "body": {
+          "status": { "type": "string", "required": true, "enum": ["PENDING", "REPLIED", "RESOLVED"], "example": "RESOLVED" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "success": true }
+        }
+      },
+      "frontendDisplay": "Status badge color updates on the ticket in the list view"
+    },
+    {
+      "name": "Delete Complaint",
+      "method": "DELETE",
+      "path": "/complaints/:complaintId",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Delete a support ticket permanently",
+      "frontendUsage": {
+        "usedBy": "complaintService.js (Admin Support/Complaints Page)",
+        "frontendDescription": "Called when admin confirms ticket deletion via confirmation dialog"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "params": {
+          "complaintId": { "type": "string", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "success": true }
+        }
+      },
+      "frontendDisplay": "Confirmation dialog, success toast, ticket removed from list"
+    }
+  ]
+}

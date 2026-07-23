@@ -1,0 +1,252 @@
+{
+  "project": "Dealora Market",
+  "generatedAt": "2026-07-18",
+  "description": "Complete API mapping for Dealora project - maps all backend endpoints and frontend service calls with request/response structures, methods, and frontend display descriptions",
+  "baseUrls": {
+    "backend": "http://localhost:5000/api",
+    "externalAPI": "https://api.dealora-market.com/v1",
+    "externalLogin": "https://api.dealoramarket.com/api"
+  },
+  "globalConfig": {
+    "rateLimit": "100 requests per 15 minutes per IP",
+    "language": "Detected from Accept-Language header or ?lang= query param (default: ar)",
+    "auth": "Bearer JWT in Authorization header, expires in 1 day",
+    "roles": ["super_admin", "store_manager", "customer", "admin"]
+  },
+  "files": [
+    {
+      "file": "auth.json",
+      "module": "Authentication",
+      "description": "Registration, login, email verification, password reset, profile management",
+      "totalEndpoints": 8,
+      "realEndpoints": 8,
+      "mockEndpoints": 0
+    },
+    {
+      "file": "categories.json",
+      "module": "Categories",
+      "description": "Product category CRUD with active filtering and status toggle",
+      "totalEndpoints": 6,
+      "realEndpoints": 3,
+      "mockEndpoints": 3
+    },
+    {
+      "file": "products.json",
+      "module": "Products",
+      "description": "Product catalog with pricing, offers, gallery, and stock",
+      "totalEndpoints": 4,
+      "realEndpoints": 2,
+      "mockEndpoints": 2
+    },
+    {
+      "file": "cart.json",
+      "module": "Cart",
+      "description": "Shopping cart - add, view, remove items (auth required)",
+      "totalEndpoints": 3,
+      "realEndpoints": 3,
+      "mockEndpoints": 0
+    },
+    {
+      "file": "orders.json",
+      "module": "Orders",
+      "description": "Order placement, history, and admin management",
+      "totalEndpoints": 5,
+      "realEndpoints": 2,
+      "mockEndpoints": 3
+    },
+    {
+      "file": "payments.json",
+      "module": "Payments",
+      "description": "Paymob payment gateway integration",
+      "totalEndpoints": 2,
+      "realEndpoints": 2,
+      "mockEndpoints": 0
+    },
+    {
+      "file": "banners.json",
+      "module": "Banners",
+      "description": "Homepage promotional banners",
+      "totalEndpoints": 4,
+      "realEndpoints": 4,
+      "mockEndpoints": 0
+    },
+    {
+      "file": "branches.json",
+      "module": "Branches",
+      "description": "Store branch/location management",
+      "totalEndpoints": 4,
+      "realEndpoints": 4,
+      "mockEndpoints": 0
+    },
+    {
+      "file": "notifications.json",
+      "module": "Notifications",
+      "description": "Timed popup notifications",
+      "totalEndpoints": 4,
+      "realEndpoints": 4,
+      "mockEndpoints": 0
+    },
+    {
+      "file": "contacts.json",
+      "module": "Contacts",
+      "description": "Contact form submissions and admin management",
+      "totalEndpoints": 3,
+      "realEndpoints": 3,
+      "mockEndpoints": 0
+    },
+    {
+      "file": "addresses.json",
+      "module": "Addresses",
+      "description": "User delivery address management",
+      "totalEndpoints": 3,
+      "realEndpoints": 3,
+      "mockEndpoints": 0
+    },
+    {
+      "file": "favorites.json",
+      "module": "Favorites",
+      "description": "Product favorites/wishlist",
+      "totalEndpoints": 2,
+      "realEndpoints": 2,
+      "mockEndpoints": 0
+    },
+    {
+      "file": "tags.json",
+      "module": "Tags",
+      "description": "Product tagging and tag-based filtering",
+      "totalEndpoints": 2,
+      "realEndpoints": 2,
+      "mockEndpoints": 0
+    },
+    {
+      "file": "seo.json",
+      "module": "SEO",
+      "description": "Meta tags and Open Graph metadata",
+      "totalEndpoints": 2,
+      "realEndpoints": 2,
+      "mockEndpoints": 0
+    },
+    {
+      "file": "settings.json",
+      "module": "Settings",
+      "description": "Global store configuration",
+      "totalEndpoints": 2,
+      "realEndpoints": 2,
+      "mockEndpoints": 0
+    },
+    {
+      "file": "inventory.json",
+      "module": "Inventory",
+      "description": "Stock batch management",
+      "totalEndpoints": 2,
+      "realEndpoints": 2,
+      "mockEndpoints": 0
+    },
+    {
+      "file": "logs.json",
+      "module": "Admin Logs",
+      "description": "Admin action audit trail",
+      "totalEndpoints": 1,
+      "realEndpoints": 1,
+      "mockEndpoints": 0
+    },
+    {
+      "file": "dashboard.json",
+      "module": "Dashboard Stats",
+      "description": "Admin dashboard aggregated metrics",
+      "totalEndpoints": 1,
+      "realEndpoints": 1,
+      "mockEndpoints": 0
+    },
+    {
+      "file": "hero-slider.json",
+      "module": "Hero Slider",
+      "description": "Homepage slider management with priority ordering",
+      "totalEndpoints": 6,
+      "realEndpoints": 0,
+      "mockEndpoints": 6
+    },
+    {
+      "file": "footer-settings.json",
+      "module": "Footer Settings",
+      "description": "Store footer configuration",
+      "totalEndpoints": 3,
+      "realEndpoints": 0,
+      "mockEndpoints": 3
+    },
+    {
+      "file": "complaints.json",
+      "module": "Complaints / Support",
+      "description": "Customer support tickets and messaging",
+      "totalEndpoints": 5,
+      "realEndpoints": 0,
+      "mockEndpoints": 5
+    },
+    {
+      "file": "users-management.json",
+      "module": "User Management",
+      "description": "Admin user management (localStorage only)",
+      "totalEndpoints": 6,
+      "realEndpoints": 0,
+      "mockEndpoints": 6
+    },
+    {
+      "file": "team-management.json",
+      "module": "Team Management",
+      "description": "Team member management with roles and permissions",
+      "totalEndpoints": 6,
+      "realEndpoints": 0,
+      "mockEndpoints": 6
+    },
+    {
+      "file": "payment-methods.json",
+      "module": "Payment Methods",
+      "description": "Payment method configuration (localStorage only)",
+      "totalEndpoints": 7,
+      "realEndpoints": 0,
+      "mockEndpoints": 7
+    },
+    {
+      "file": "deals.json",
+      "module": "Deals",
+      "description": "Promotional deals management (localStorage only)",
+      "totalEndpoints": 4,
+      "realEndpoints": 0,
+      "mockEndpoints": 4
+    },
+    {
+      "file": "best-sellers.json",
+      "module": "Best Sellers",
+      "description": "Sales analytics with time-based filtering (computed)",
+      "totalEndpoints": 1,
+      "realEndpoints": 0,
+      "mockEndpoints": 1
+    },
+    {
+      "file": "storefront.json",
+      "module": "Storefront",
+      "description": "Customer-facing login, registration, and site context",
+      "totalEndpoints": 4,
+      "realEndpoints": 2,
+      "mockEndpoints": 2
+    }
+  ],
+  "summary": {
+    "totalFiles": 27,
+    "totalEndpoints": 91,
+    "backendRealEndpoints": 53,
+    "frontendMockEndpoints": 38,
+    "onlyActiveRealAPICalls": [
+      "POST https://api.dealora-market.com/v1/auth/send-otp",
+      "POST https://api.dealora-market.com/v1/auth/register-verify"
+    ],
+    "knownIssues": [
+      "dashboardService.js imports non-existent 'apiGet' from apiClient.js",
+      "Inconsistent API domains: login=api.dealoramarket.com, register=api.dealora-market.com",
+      "No .env file exists - all dashboard services default to mock mode",
+      "footerService.js may double-unwrap response.data due to apiClient interceptor",
+      "Token keys inconsistent: admin=dealora-auth-token, storefront=dealora_token/dealora_market_token",
+      "SiteProvider updateUserPassword does not verify old password"
+    ]
+  }
+}

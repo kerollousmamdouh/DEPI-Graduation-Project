@@ -1,0 +1,73 @@
+{
+  "module": "Payments",
+  "basePath": "/api/payments",
+  "description": "Payment processing via Paymob gateway - initiate checkout and receive webhook callbacks",
+  "endpoints": [
+    {
+      "name": "Initiate Paymob Payment",
+      "method": "POST",
+      "path": "/api/payments/checkout",
+      "auth": true,
+      "roles": ["customer"],
+      "description": "Start a payment session via Paymob - authenticates, creates order, returns iframe payment URL",
+      "frontendUsage": {
+        "usedBy": "Storefront Checkout Page",
+        "frontendDescription": "Called after order is placed and user selects online payment. Opens Paymob payment iframe/page for card or mobile wallet payment."
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "body": {
+          "amount": { "type": "number", "required": true, "example": 169.98, "description": "Total amount in EGP" },
+          "firstName": { "type": "string", "required": false, "example": "Ahmed" },
+          "lastName": { "type": "string", "required": false, "example": "Ali" },
+          "email": { "type": "string", "required": true, "example": "ahmed@example.com" },
+          "phone": { "type": "string", "required": true, "example": "01012345678" },
+          "orderId": { "type": "number", "required": false, "example": 101, "description": "Associated order ID" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": {
+            "message": { "type": "string", "example": "Payment session created" },
+            "paymentUrl": { "type": "string", "example": "https://accept.paymob.com/api/acceptance/iframes/12345?payment_token=XYZ", "description": "URL to redirect user to Paymob payment page" },
+            "paymobOrderId": { "type": "number", "example": 98765 }
+          }
+        }
+      },
+      "frontendDisplay": "Redirects user to Paymob payment page or opens in iframe. Shows loading spinner during payment initialization."
+    },
+    {
+      "name": "Paymob Webhook",
+      "method": "POST",
+      "path": "/api/payments/webhook",
+      "auth": false,
+      "description": "Receive asynchronous payment result callback from Paymob server",
+      "frontendUsage": {
+        "usedBy": "Backend-only (no direct frontend call)",
+        "frontendDescription": "Paymob sends payment status here. Backend updates order status based on payment result. User sees updated status on next page load/refresh."
+      },
+      "request": {
+        "body": {
+          "description": "Paymob callback payload (req.body.obj)",
+          "type": "object",
+          "fields": {
+            "id": { "type": "number", "description": "Paymob transaction ID" },
+            "order": { "type": "object", "description": "Paymob order object" },
+            "success": { "type": "boolean", "description": "Payment success status" },
+            "amount_cents": { "type": "number", "description": "Amount in cents" }
+          }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": "OK"
+        }
+      },
+      "frontendDisplay": "No direct frontend display - order status updates asynchronously. User sees updated status when they refresh or navigate to orders page."
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "module": "Addresses",
+  "basePath": "/api/addresses",
+  "description": "User delivery address management - list, add, delete saved addresses",
+  "authentication": "Bearer JWT token required for all endpoints",
+  "endpoints": [
+    {
+      "name": "Get My Addresses",
+      "method": "GET",
+      "path": "/api/addresses",
+      "auth": true,
+      "roles": ["customer"],
+      "description": "Retrieve all saved delivery addresses for the logged-in user",
+      "frontendUsage": {
+        "usedBy": "Storefront Addresses Page, Checkout Page",
+        "frontendDescription": "Displays saved addresses on profile page and as selectable options during checkout. Default address shown first."
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": [
+            {
+              "id": { "type": "number", "example": 1 },
+              "title": { "type": "string", "example": "Home" },
+              "city": { "type": "string", "example": "Cairo" },
+              "area": { "type": "string", "example": "Nasr City" },
+              "street_details": { "type": "string", "example": "15 Main Street, Building 4" },
+              "building_number": { "type": "string", "nullable": true, "example": "4" },
+              "floor_number": { "type": "string", "nullable": true, "example": "3" },
+              "is_default": { "type": "boolean", "example": true }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Address cards with title (Home/Work/Other), full address text, default badge, edit/delete actions. Default address auto-selected during checkout."
+    },
+    {
+      "name": "Add Address",
+      "method": "POST",
+      "path": "/api/addresses",
+      "auth": true,
+      "roles": ["customer"],
+      "description": "Save a new delivery address",
+      "frontendUsage": {
+        "usedBy": "Storefront Addresses Page",
+        "frontendDescription": "Called when user submits the Add Address form with title, city, area, and street details"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "body": {
+          "title": { "type": "string", "required": true, "example": "Home" },
+          "city": { "type": "string", "required": true, "example": "Cairo" },
+          "area": { "type": "string", "required": true, "example": "Nasr City" },
+          "street_details": { "type": "string", "required": true, "example": "15 Main Street" },
+          "building_number": { "type": "string", "required": false, "example": "4" },
+          "floor_number": { "type": "string", "required": false, "example": "3" },
+          "is_default": { "type": "boolean", "required": false, "default": false, "description": "Set as default address" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 201,
+          "body": { "message": { "type": "string", "example": "Address added successfully" } }
+        }
+      },
+      "frontendDisplay": "Shows success toast, new address card appears in address list"
+    },
+    {
+      "name": "Delete Address",
+      "method": "DELETE",
+      "path": "/api/addresses/:id",
+      "auth": true,
+      "roles": ["customer"],
+      "description": "Delete a saved address",
+      "frontendUsage": {
+        "usedBy": "Storefront Addresses Page",
+        "frontendDescription": "Called when user clicks delete button on an address card with confirmation"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "params": {
+          "id": { "type": "number", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "message": "Address deleted successfully" }
+        }
+      },
+      "frontendDisplay": "Confirmation dialog, success toast, address card removed from list"
+    }
+  ]
+}

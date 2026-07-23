@@ -1,0 +1,79 @@
+{
+  "module": "Tags",
+  "basePath": "/api/tags",
+  "description": "Product tag system - filter products by tag, assign tags to entities",
+  "endpoints": [
+    {
+      "name": "Get Products By Tag",
+      "method": "GET",
+      "path": "/api/tags/:tagName",
+      "auth": false,
+      "description": "Retrieve all products associated with a specific tag",
+      "frontendUsage": {
+        "usedBy": "Storefront Tag-based Product Listing",
+        "frontendDescription": "Displays filtered product grid when user clicks a tag (e.g., 'new-arrival', 'best-seller', 'sale'). Shows products with current pricing."
+      },
+      "request": {
+        "params": {
+          "tagName": { "type": "string", "required": true, "example": "best-seller" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": [
+            {
+              "id": { "type": "number" },
+              "name": { "type": "string" },
+              "product_image": { "type": "string" },
+              "price": { "type": "number" },
+              "discount_price": { "type": "number", "nullable": true },
+              "current_price": { "type": "number" },
+              "avg_rating": { "type": "number" },
+              "category_name": { "type": "string" }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Tag page with tag name as header, product card grid below, each card showing image, name, price, rating, and add-to-cart button"
+    },
+    {
+      "name": "Assign Tag",
+      "method": "POST",
+      "path": "/api/tags/assign",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Assign a tag to a product, category, or other entity",
+      "frontendUsage": {
+        "usedBy": "Admin Tag Management",
+        "frontendDescription": "Called when admin assigns a tag to a product or category for filtering and organization"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "body": {
+          "tag_name": { "type": "string", "required": true, "example": "new-arrival" },
+          "entity_type": { "type": "string", "required": true, "enum": ["product", "category"], "example": "product" },
+          "entity_id": { "type": "number", "required": true, "example": 5 }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 201,
+          "body": {
+            "success": true,
+            "message": { "type": "string", "example": "Tag assigned successfully" },
+            "data": {
+              "tag_id": { "type": "number", "example": 3 },
+              "tag_name": { "type": "string", "example": "new-arrival" },
+              "entity_type": { "type": "string", "example": "product" },
+              "entity_id": { "type": "number", "example": 5 }
+            }
+          }
+        }
+      },
+      "frontendDisplay": "Shows success toast, tag appears on the product/category in admin view"
+    }
+  ]
+}

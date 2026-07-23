@@ -1,0 +1,94 @@
+{
+  "module": "Contacts",
+  "basePath": "/api/contacts",
+  "description": "Contact form message submission and admin management",
+  "endpoints": [
+    {
+      "name": "Submit Contact Message",
+      "method": "POST",
+      "path": "/api/contacts",
+      "auth": false,
+      "description": "Submit a contact form message from the storefront",
+      "frontendUsage": {
+        "usedBy": "Storefront Contact Us Page",
+        "frontendDescription": "Called when visitor fills out and submits the contact form with name, email, subject, and message"
+      },
+      "request": {
+        "body": {
+          "name": { "type": "string", "required": true, "example": "Ahmed Ali" },
+          "email": { "type": "string", "required": true, "example": "ahmed@example.com" },
+          "subject": { "type": "string", "required": true, "example": "Inquiry about product availability" },
+          "message": { "type": "string", "required": true, "example": "Do you have wireless headphones in stock?" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 201,
+          "body": { "message": { "type": "string", "example": "Message sent successfully" } }
+        }
+      },
+      "frontendDisplay": "Shows success toast 'Your message has been sent', clears form fields"
+    },
+    {
+      "name": "Get All Messages (Admin)",
+      "method": "GET",
+      "path": "/api/contacts",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Retrieve all contact form submissions",
+      "frontendUsage": {
+        "usedBy": "Admin Contact/Messages Page",
+        "frontendDescription": "Displays all contact messages in admin table with sender name, email, subject, read status, and date"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": [
+            {
+              "id": { "type": "number", "example": 1 },
+              "name": { "type": "string", "example": "Ahmed Ali" },
+              "email": { "type": "string", "example": "ahmed@example.com" },
+              "subject": { "type": "string", "example": "Product inquiry" },
+              "message": { "type": "string", "example": "Do you have headphones in stock?" },
+              "is_read": { "type": "boolean", "example": false },
+              "created_at": { "type": "string", "format": "datetime" }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Messages table with unread indicator (bold/dot), sender info, subject preview, date, click to expand full message"
+    },
+    {
+      "name": "Mark Message As Read",
+      "method": "PATCH",
+      "path": "/api/contacts/:id/read",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Mark a contact message as read",
+      "frontendUsage": {
+        "usedBy": "Admin Contact/Messages Page",
+        "frontendDescription": "Called when admin opens/clicks on an unread message"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "params": {
+          "id": { "type": "number", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "message": "Marked as read" }
+        }
+      },
+      "frontendDisplay": "Removes unread indicator from message row, changes styling from bold to normal"
+    }
+  ]
+}

@@ -1,0 +1,556 @@
+{
+  "project_name": "Delora Hypermarket API Collection",
+  "base_url": "http://localhost:5000",
+  "version": "1.0.0 (Current Server Configuration)",
+  "modules": [
+    {
+      "module_name": "1. Authentication (authRoutes)",
+      "base_route": "/api/auth",
+      "apis": [
+        {
+          "name": "User Register",
+          "method": "POST",
+          "endpoint": "/api/auth/register",
+          "description": "تسجيل حساب مستخدم جديد (Customer) وإرسال كود التفعيل تلقائياً.",
+          "request": {
+            "headers": { "Content-Type": "application/json", "Accept-Language": "ar" },
+            "body": {
+              "name": "Yassa Maher",
+              "email": "yassa@example.com",
+              "password": "Password123*",
+              "phone": "01234567890",
+              "gender": "male"
+            }
+          },
+          "response": {
+            "status": 201,
+            "body": {
+              "success": true,
+              "message": "تم التسجيل بنجاح، يرجى تفعيل الحساب بكود التحقق.",
+              "user_id": 1
+            }
+          },
+          "ui_mapping": {
+            "screen": "Register Screen",
+            "usage": "يأخذ مدخلات المستخدم من الفورم، في حالة النجاح ينقل المستخدم لصفحة التحقق OTP."
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "method": "POST",
+          "endpoint": "/api/auth/verify-otp",
+          "description": "التحقق من كود الـ OTP المكون من 6 أرقام لتفعيل الحساب وتغيير حالة الحساب إلى نشط.",
+          "request": {
+            "headers": { "Content-Type": "application/json" },
+            "body": {
+              "email": "yassa@example.com",
+              "code": "123456"
+            }
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "تم تفعيل الحساب بنجاح."
+            }
+          },
+          "ui_mapping": {
+            "screen": "OTP Verification Screen",
+            "usage": "يعرض 6 خانات لإدخال الكود، ويظهر رسالة نجاح قبل توجيهه لصفحة الدخول."
+          }
+        }
+      ]
+    },
+    {
+      "module_name": "2. Categories (categoryRoutes)",
+      "base_route": "/api/categories",
+      "apis": [
+        {
+          "name": "Get All Categories",
+          "method": "GET",
+          "endpoint": "/api/categories",
+          "description": "جلب قائمة بجميع الأقسام الرئيسية والفرعية المتاحة في الهايبر ماركت.",
+          "request": { "headers": { "Accept-Language": "ar" } },
+          "response": {
+            "status": 200,
+            "body": [
+              {
+                "id": 1,
+                "name_ar": "مأكولات ومشروبات",
+                "slug": "food-and-beverages",
+                "image_url": "https://example.com/categories/food.png"
+              }
+            ]
+          },
+          "ui_mapping": {
+            "screen": "Home Screen / Categories Grid",
+            "usage": "عرض الأقسام في الصفحة الرئيسية كشبكة أو قائمة أفقية للتنقل السريع."
+          }
+        }
+      ]
+    },
+    {
+      "module_name": "3. Products (productRoutes)",
+      "base_route": "/api/products",
+      "apis": [
+        {
+          "name": "Get Product Details by Slug",
+          "method": "GET",
+          "endpoint": "/api/products/chipsy-family-tomato",
+          "description": "جلب تفاصيل المنتج بالكامل بناءً على الـ Slug الفريد الخاص به.",
+          "request": { "headers": { "Accept-Language": "ar" } },
+          "response": {
+            "status": 200,
+            "body": {
+              "id": 1,
+              "name_ar": "شيبسي عائلي طماطم",
+              "brand_ar": "شيبسي",
+              "price": "10.00",
+              "discount_price": null,
+              "available_quantity": 90,
+              "sku": "CH-TOM-01",
+              "product_image": "https://example.com/chipsy.png",
+              "description_ar": "رقائق بطاطس طازجة بطعم الطماطم"
+            }
+          },
+          "ui_mapping": {
+            "screen": "Product Details Screen",
+            "usage": "يعرض تفاصيل المنتج، السعر، ويتحكم في زر الإضافة للسلة بناءً على الكمية المتاحة (إذا كانت 0 يتحول لـ Out of Stock)."
+          }
+        }
+      ]
+    },
+    {
+      "module_name": "4. Shopping Cart (cartRoutes)",
+      "base_route": "/api/cart",
+      "apis": [
+        {
+          "name": "Add / Update Cart Item",
+          "method": "POST",
+          "endpoint": "/api/cart",
+          "description": "إضافة منتج معين إلى سلة المستخدم أو تعديل كميته بالحساب الفعلي.",
+          "request": {
+            "headers": { "Authorization": "Bearer <TOKEN>", "Content-Type": "application/json" },
+            "body": {
+              "product_id": 1,
+              "quantity": 2
+            }
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "message": "تم تحديث السلة بنجاح."
+            }
+          },
+          "ui_mapping": {
+            "screen": "All Product Cards / Details",
+            "usage": "يتم استدعاؤه عند النقر على أزرار (+) أو (-) للمنتج لتحديث السلة فوراً في السيرفر وتحديث شارة العدد (Badge) في الـ Header."
+          }
+        },
+        {
+          "name": "Get Cart Details",
+          "method": "GET",
+          "endpoint": "/api/cart",
+          "description": "جلب عناصر السلة الخاصة بالمستخدم الحالي لحساب الإجمالي والـ Subtotal.",
+          "request": { "headers": { "Authorization": "Bearer <TOKEN>" } },
+          "response": {
+            "status": 200,
+            "body": {
+              "items": [
+                {
+                  "product_id": 1,
+                  "name_ar": "شيبسي عائلي طماطم",
+                  "price": "10.00",
+                  "quantity": 2,
+                  "subtotal": "20.00",
+                  "product_image": "https://example.com/chipsy.png"
+                }
+              ],
+              "cart_total": "20.00"
+            }
+          },
+          "ui_mapping": {
+            "screen": "Cart Screen",
+            "usage": "رسم المنتجات داخل السلة، وعرض الإجمالي التراكمي في الأسفل قبل الذهاب لصفحة إتمام الطلب."
+          }
+        }
+      ]
+    },
+    {
+      "module_name": "5. Orders (orderRoutes)",
+      "base_route": "/api/orders",
+      "apis": [
+        {
+          "name": "Checkout - Create New Order",
+          "method": "POST",
+          "endpoint": "/api/orders",
+          "description": "تحويل محتويات السلة لطلب حقيقي بعد تحديد عنوان الشحن وطريقة الدفع.",
+          "request": {
+            "headers": { "Authorization": "Bearer <TOKEN>", "Content-Type": "application/json" },
+            "body": {
+              "coupon_id": null,
+              "payment_method": "cash_on_delivery",
+              "shipping_address": "المنزل - أسيوط، شركة الفريال، شارع النميس"
+            }
+          },
+          "response": {
+            "status": 201,
+            "body": {
+              "success": true,
+              "message": "تم تسجيل طلبك بنجاح.",
+              "order_id": 2,
+              "total_amount": "20.00"
+            }
+          },
+          "ui_mapping": {
+            "screen": "Checkout Screen",
+            "usage": "عند الضغط على زر 'تأكيد الطلب'، يظهر لودنج ثم يوجه لصفحة النجاح (Order Success Screen) لعرض رقم الطلب."
+          }
+        }
+      ]
+    },
+    {
+      "module_name": "6. Notifications (notificationRoutes)",
+      "base_route": "/api/notifications",
+      "apis": [
+        {
+          "name": "Get User Notifications",
+          "method": "GET",
+          "endpoint": "/api/notifications",
+          "description": "جلب الإشعارات الخاصة بالمستخدم (تحديثات الطلب، العروض الجديدة).",
+          "request": { "headers": { "Authorization": "Bearer <TOKEN>", "Accept-Language": "ar" } },
+          "response": {
+            "status": 200,
+            "body": [
+              {
+                "id": 9,
+                "title_ar": "تم شحن طلبك 🚚",
+                "message_ar": "طلبك رقم #2 في الطريق إليك الآن مع المندوب.",
+                "is_read": 0,
+                "created_at": "2026-07-18T10:00:00Z"
+              }
+            ]
+          },
+          "ui_mapping": {
+            "screen": "Notifications Screen",
+            "usage": "عرض قائمة الإشعارات، وتلوين الإشعارات غير المقروءة بخلفية مميزة."
+          }
+        }
+      ]
+    },
+    {
+      "module_name": "7. Marketing Banners (bannerRoutes)",
+      "base_route": "/api/banners",
+      "apis": [
+        {
+          "name": "Get Active Banners",
+          "method": "GET",
+          "endpoint": "/api/banners",
+          "description": "جلب البانرات الإعلانية النشطة لعرضها في السلايدر العلوي.",
+          "request": { "headers": { "Accept-Language": "ar" } },
+          "response": {
+            "status": 200,
+            "body": [
+              {
+                "id": 1,
+                "title_ar": "عروض الجمعة البيضاء",
+                "image_url": "https://example.com/banners/white-friday.png",
+                "target_type": "category",
+                "target_id": 3
+              }
+            ]
+          },
+          "ui_mapping": {
+            "screen": "Home Screen",
+            "usage": "تعرض في الـ Carousel الأعلى، وعند الضغط على البانر ينقل المستخدم للقسم المربوط به."
+          }
+        }
+      ]
+    },
+    {
+      "module_name": "8. Branches (branchRoutes)",
+      "base_route": "/api/branches",
+      "apis": [
+        {
+          "name": "Get Hypermarket Branches",
+          "method": "GET",
+          "endpoint": "/api/branches",
+          "description": "جلب قائمة فروع ديلورا المتاحة مع مواعيد العمل واللوكيشن.",
+          "request": { "headers": { "Accept-Language": "ar" } },
+          "response": {
+            "status": 200,
+            "body": [
+              {
+                "id": 1,
+                "name_ar": "فرع أسيوط الرئيسي",
+                "address_ar": "شارع النميس - أمام برج الحرية",
+                "google_maps_url": "https://maps.google.com/...",
+                "working_hours": "من 9 صباحاً إلى 2 صباحاً"
+              }
+            ]
+          },
+          "ui_mapping": {
+            "screen": "Branches Screen",
+            "usage": "تعرض كقائمة للفروع، مع زرار 'افتح في الخريطة' يفتح رابط جوجل مابس."
+          }
+        }
+      ]
+    },
+    {
+      "module_name": "9. App Settings (settingsRoutes)",
+      "base_route": "/api/settings",
+      "apis": [
+        {
+          "name": "Get App Settings",
+          "method": "GET",
+          "endpoint": "/api/settings",
+          "description": "جلب إعدادات التطبيق العامة مثل أرقام الدعم الفني، روابط السوشيال ميديا، وسياسة الخصوصية.",
+          "request": { "headers": {} },
+          "response": {
+            "status": 200,
+            "body": {
+              "facebook_link": "https://facebook.com/delora",
+              "hotline": "19xxx",
+              "delivery_fee": 20.00,
+              "terms_and_conditions_ar": "شروط وأحكام استخدام ديلورا..."
+            }
+          },
+          "ui_mapping": {
+            "screen": "Settings / About App Screen",
+            "usage": "يستخدم لجلب الـ delivery_fee لزيادتها على الفاتورة في الـ Checkout، وعرض الروابط في القائمة الجانبية."
+          }
+        }
+      ]
+    },
+    {
+      "module_name": "10. Contacts (contactRoutes)",
+      "base_route": "/api/contacts",
+      "apis": [
+        {
+          "name": "Submit Contact Form",
+          "method": "POST",
+          "endpoint": "/api/contacts",
+          "description": "إرسال شكوى أو مقترح من المستخدم لإدارة الهايبر ماركت.",
+          "request": {
+            "headers": { "Content-Type": "application/json" },
+            "body": {
+              "name": "ياسا ماهر",
+              "email": "yassa@example.com",
+              "subject": "اقتراح بخصوص التوصيل",
+              "message": "نرجو زيادة عدد الطيارين في منطقة الفريال."
+            }
+          },
+          "response": {
+            "status": 201,
+            "body": {
+              "success": true,
+              "message": "تم إرسال رسالتك بنجاح وسنقوم بالرد عليك قريباً."
+            }
+          },
+          "ui_mapping": {
+            "screen": "Contact Us Screen",
+            "usage": "فورم يأخذ بيانات العميل ويظهر رسالة نجاح بعد الإرسال."
+          }
+        }
+      ]
+    },
+    {
+      "module_name": "11. Addresses (addressRoutes)",
+      "base_route": "/api/addresses",
+      "apis": [
+        {
+          "name": "Get Saved Addresses",
+          "method": "GET",
+          "endpoint": "/api/addresses",
+          "description": "جلب كافة العناوين المسجلة للعميل لاختيار مكان الشحن منها.",
+          "request": { "headers": { "Authorization": "Bearer <TOKEN>" } },
+          "response": {
+            "status": 200,
+            "body": [
+              {
+                "id": 1,
+                "title": "المنزل",
+                "city": "أسيوط",
+                "area": "شركة الفريال",
+                "street_details": "شارع النميس، بجوار برج الحرية",
+                "building_number": "12",
+                "floor_number": "الخامس",
+                "is_default": 1
+              }
+            ]
+          },
+          "ui_mapping": {
+            "screen": "Checkout Screen / Address Book",
+            "usage": "يعرض قائمة عناوين العميل على هيئة بطاقات (Cards) يختار منها العنوان المطلوب لتمريره لـ API الطلبات."
+          }
+        }
+      ]
+    },
+    {
+      "module_name": "12. Favorites (favoriteRoutes)",
+      "base_route": "/api/favorites",
+      "apis": [
+        {
+          "name": "Toggle Favorite (Add/Remove)",
+          "method": "POST",
+          "endpoint": "/api/favorites/toggle",
+          "description": "إضافة أو حذف منتج من المفضلة بضغطة واحدة (Like/Unlike).",
+          "request": {
+            "headers": { "Authorization": "Bearer <TOKEN>", "Content-Type": "application/json" },
+            "body": { "product_id": 5 }
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "is_favorite": true,
+              "message": "تم إضافة المنتج للمفضلة."
+            }
+          },
+          "ui_mapping": {
+            "screen": "Any Product Card / Details",
+            "usage": "تغيير شكل أيقونة القلب (Heart Icon) من فاضي لمليان أو العكس بناءً على قيمة الـ is_favorite الراجعة."
+          }
+        }
+      ]
+    },
+    {
+      "module_name": "13. Tags (tagRoutes)",
+      "base_route": "/api/tags",
+      "apis": [
+        {
+          "name": "Get Product Tags",
+          "method": "GET",
+          "endpoint": "/api/tags",
+          "description": "جلب الوسوم التوضيحية للمنتجات (مثل: دايت، الأكثر مبيعاً).",
+          "request": { "headers": { "Accept-Language": "ar" } },
+          "response": {
+            "status": 200,
+            "body": [
+              { "id": 1, "name_ar": "عروض توفير" },
+              { "id": 2, "name_ar": "منتجات صحية" }
+            ]
+          },
+          "ui_mapping": {
+            "screen": "Home / Search Screen Filters",
+            "usage": "تعرض كـ Badges صغيرة ملونة فوق صورة المنتج، أو كفلاتر سريعة للبحث والتصفية."
+          }
+        }
+      ]
+    },
+    {
+      "module_name": "14. Audit Logs (logRoutes) [Admin Context]",
+      "base_route": "/api/logs",
+      "apis": [
+        {
+          "name": "Get Audit Logs (Admin Only)",
+          "method": "GET",
+          "endpoint": "/api/logs",
+          "description": "مراقبة حركات النظام والـ Actions التي قام بها المديرين داخل لوحة التحكم لضمان الأمان.",
+          "request": { "headers": { "Authorization": "Bearer <ADMIN_TOKEN>" } },
+          "response": {
+            "status": 200,
+            "body": [
+              {
+                "log_id": 150,
+                "admin_name": "أحمد المسؤول",
+                "action": "تعديل سعر منتج",
+                "details": "تم تغيير سعر شيبسي عائلي من 10 إلى 12 جنيه",
+                "timestamp": "2026-07-18T12:00:00Z"
+              }
+            ]
+          },
+          "ui_mapping": {
+            "screen": "Admin Dashboard - Audit Logs Screen",
+            "usage": "جدول يعرض العمليات التي تحدث في الخلفية من قبل الـ Staff لمراجعتها."
+          }
+        }
+      ]
+    },
+    {
+      "module_name": "15. SEO Settings (seoRoutes)",
+      "base_route": "/api/seo",
+      "apis": [
+        {
+          "name": "Get SEO Metadata for Category",
+          "method": "GET",
+          "endpoint": "/api/seo/category/food-and-beverages",
+          "description": "جلب الـ Meta Tags الخاصة بالقسم لتحسين الأرشفة في محركات البحث.",
+          "request": { "headers": {} },
+          "response": {
+            "status": 200,
+            "body": {
+              "meta_title": "سوبرماركت ديلورا | قسم المأكولات والمشروبات",
+              "meta_description": "تصفح أفضل المنتجات الغذائية والمشروبات الطازجة بأسعار المصنع في أسيوط.",
+              "meta_keywords": "سوبرماركت, أسيوط, مأكولات, ديلورا"
+            }
+          },
+          "ui_mapping": {
+            "screen": "Frontend Website (Next.js / React Helmet)",
+            "usage": "يتم حقن هذه البيانات في الـ <head> الخاص بالصفحة مباشرة لتظهر بشكل احترافي على جوجل وفي السوشيال ميديا (Open Graph)."
+          }
+        }
+      ]
+    },
+    {
+      "module_name": "16. Inventory Management (inventoryRoutes) [Admin Context]",
+      "base_route": "/api/inventory",
+      "apis": [
+        {
+          "name": "Update Inventory Stock",
+          "method": "PUT",
+          "endpoint": "/api/inventory/update-stock",
+          "description": "تعديل كمية المخزن الفعلي لمنتج عند وصول شحنة جديدة للمستودع.",
+          "request": {
+            "headers": { "Authorization": "Bearer <ADMIN_TOKEN>", "Content-Type": "application/json" },
+            "body": {
+              "product_id": 1,
+              "added_quantity": 50,
+              "reason": "توريد شحنة جديدة من المصنع"
+            }
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "new_stock": 140,
+              "message": "تم تحديث المخزون وإضافة الحركة بنجاح."
+            }
+          },
+          "ui_mapping": {
+            "screen": "Admin Dashboard - Inventory Management",
+            "usage": "فورم داخل لوحة التحكم يستعمله أمين المخزن لتزويد البضاعة وتوثيق الحركات."
+          }
+        }
+      ]
+    },
+    {
+      "module_name": "17. Digital Payments (paymentRoutes)",
+      "base_route": "/api/payments",
+      "apis": [
+        {
+          "name": "Initiate Card Payment (Paymob Log)",
+          "method": "POST",
+          "endpoint": "/api/payments/initiate",
+          "description": "إنشاء سجل معاملة مالية وتجهيز الدفع الإلكتروني بالفيزا أو المحافظ.",
+          "request": {
+            "headers": { "Authorization": "Bearer <TOKEN>" },
+            "body": { "order_id": 2 }
+          },
+          "response": {
+            "status": 200,
+            "body": {
+              "success": true,
+              "payment_url": "https://accept.paymob.com/api/acceptance/iframes/..."
+            }
+          },
+          "ui_mapping": {
+            "screen": "Checkout Screen Payment Mode",
+            "usage": "إذا اختار المستخدم الدفع الإلكتروني، يتم فتح الـ payment_url داخل WebView أو نافذة خارجية لإتمام عملية الدفع."
+          }
+        }
+      ]
+    }
+  ]
+}

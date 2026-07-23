@@ -1,0 +1,127 @@
+{
+  "module": "User Management (Admin)",
+  "basePath": "localStorage-only",
+  "description": "Admin user management - view, add, edit, block users, send messages. All operations are localStorage-based (no real API).",
+  "authentication": "No real backend authentication - admin login is localStorage-based",
+  "dataStorage": "Pure localStorage - key: 'users', seed: usersData import",
+  "mockDelay": "250ms simulated latency",
+  "endpoints": [
+    {
+      "name": "Get All Users",
+      "method": "LOCAL",
+      "path": "localStorage key: 'users'",
+      "auth": false,
+      "description": "Retrieve all registered users with computed order stats",
+      "frontendUsage": {
+        "usedBy": "userService.js (Admin Users Page)",
+        "frontendDescription": "Displays user list in admin table. Each user shows name, email, phone, status, join date, total orders, and total spent. Orders are cross-referenced from 'dealora_market_orders'."
+      },
+      "request": {},
+      "response": {
+        "success": {
+          "body": [
+            {
+              "id": { "type": "number", "example": 1700000000000 },
+              "fullName": { "type": "string", "example": "Ahmed Ali" },
+              "email": { "type": "string", "example": "ahmed@example.com" },
+              "phone": { "type": "string", "example": "01012345678" },
+              "status": { "type": "string", "enum": ["Active", "Blocked"], "example": "Active" },
+              "joinDate": { "type": "string", "format": "date", "example": "2024-01-15" },
+              "lastLogin": { "type": "string", "example": "2024-06-10" },
+              "totalOrders": { "type": "number", "example": 5, "description": "Computed from matching orders" },
+              "totalSpent": { "type": "number", "example": 499.95, "description": "Sum of totalPrice from matching orders" }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Users table with avatar, name, email, phone, status badge (Active=green, Blocked=red), join date, total orders count, total spent amount, and action buttons (edit, block/unblock, message, delete)"
+    },
+    {
+      "name": "Add User",
+      "method": "LOCAL",
+      "path": "localStorage key: 'users'",
+      "description": "Add a new user manually",
+      "frontendUsage": {
+        "usedBy": "userService.js (Admin Users Page)",
+        "frontendDescription": "Called when admin submits Add User form. Validates duplicate email.",
+        "mockBehavior": "Adds with auto-generated id (Date.now()), joinDate, lastLogin='-', totalOrders=0, totalSpent=0"
+      },
+      "request": {
+        "body": {
+          "fullName": { "type": "string", "required": true },
+          "email": { "type": "string", "required": true },
+          "phone": { "type": "string", "required": false },
+          "status": { "type": "string", "default": "Active" }
+        }
+      },
+      "response": {
+        "success": {
+          "body": { "description": "New user object with generated id and defaults" }
+        },
+        "error": { "body": { "message": "Email already exists" } }
+      },
+      "frontendDisplay": "Shows success toast, user appears in table"
+    },
+    {
+      "name": "Update User",
+      "method": "LOCAL",
+      "path": "localStorage key: 'users'",
+      "description": "Update user details",
+      "frontendUsage": {
+        "usedBy": "userService.js (Admin Users Page)",
+        "frontendDescription": "Called when admin saves edited user. Validates email uniqueness (excluding self)."
+      },
+      "request": {
+        "params": { "id": { "type": "number", "required": true } },
+        "body": { "description": "Partial user fields (fullName, email, phone)" }
+      },
+      "response": { "success": { "body": true } },
+      "frontendDisplay": "Shows success toast, user row updates"
+    },
+    {
+      "name": "Delete User",
+      "method": "LOCAL",
+      "path": "localStorage key: 'users'",
+      "description": "Remove a user",
+      "frontendUsage": {
+        "usedBy": "userService.js (Admin Users Page)",
+        "frontendDescription": "Called when admin confirms user deletion"
+      },
+      "request": { "params": { "id": { "type": "number", "required": true } } },
+      "response": { "success": { "body": true } },
+      "frontendDisplay": "Confirmation dialog, success toast, user removed from table"
+    },
+    {
+      "name": "Toggle User Status",
+      "method": "LOCAL",
+      "path": "localStorage key: 'users'",
+      "description": "Toggle between Active and Blocked",
+      "frontendUsage": {
+        "usedBy": "userService.js (Admin Users Page)",
+        "frontendDescription": "Called when admin clicks status toggle switch"
+      },
+      "request": { "params": { "id": { "type": "number", "required": true } } },
+      "response": { "success": { "body": true } },
+      "frontendDisplay": "Status badge toggles between green (Active) and red (Blocked)"
+    },
+    {
+      "name": "Send Message To Users",
+      "method": "API (via complaintService)",
+      "path": "POST /complaints/direct-message (for each user)",
+      "description": "Send a direct message to selected users",
+      "frontendUsage": {
+        "usedBy": "userService.js -> complaintService.sendDirectMessageToUser",
+        "frontendDescription": "Called when admin selects multiple users and sends a bulk message. Iterates through selected user IDs, calls complaintService for each.",
+        "mockBehavior": "Finds matching users from localStorage, calls sendDirectMessageToUser() for each"
+      },
+      "request": {
+        "body": {
+          "userIds": { "type": "array", "items": { "type": "number" }, "required": true },
+          "messageText": { "type": "string", "required": true }
+        }
+      },
+      "response": { "success": { "body": true } },
+      "frontendDisplay": "Success toast, messages sent to selected users' ticket threads"
+    }
+  ]
+}

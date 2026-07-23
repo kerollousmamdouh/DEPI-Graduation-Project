@@ -1,0 +1,134 @@
+{
+  "module": "Payment Methods (Admin)",
+  "basePath": "localStorage-only",
+  "description": "Payment method configuration management - add, edit, reorder, toggle payment options shown to customers. All operations are localStorage-based.",
+  "authentication": "No real backend - admin auth is localStorage-based",
+  "dataStorage": "Pure localStorage - key: 'payment_methods', seed: paymentMethodsData import",
+  "mockDelay": "250ms simulated latency",
+  "endpoints": [
+    {
+      "name": "Get All Payment Methods",
+      "method": "LOCAL",
+      "path": "localStorage key: 'payment_methods'",
+      "description": "Retrieve all configured payment methods sorted by priority",
+      "frontendUsage": {
+        "usedBy": "paymentMethodService.js (Admin Payment Methods Page)",
+        "frontendDescription": "Displays payment methods list with name, icon, status, priority order, default badge, and action buttons"
+      },
+      "request": {},
+      "response": {
+        "success": {
+          "body": [
+            {
+              "id": { "type": "number", "example": 1 },
+              "name": { "type": "string", "example": "Credit Card" },
+              "icon": { "type": "string", "example": "credit-card" },
+              "description": { "type": "string", "example": "Pay with Visa or Mastercard" },
+              "isActive": { "type": "boolean", "example": true },
+              "isDefault": { "type": "boolean", "example": false },
+              "priority": { "type": "number", "example": 1 },
+              "status": { "type": "string", "enum": ["Active", "Inactive"], "example": "Active" },
+              "createdAt": { "type": "string", "format": "ISO datetime" }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Payment methods table with icon, name, description, priority number, default badge, active status toggle, and actions (edit, delete, set default, move up/down)"
+    },
+    {
+      "name": "Add Payment Method",
+      "method": "LOCAL",
+      "path": "localStorage key: 'payment_methods'",
+      "description": "Add a new payment method",
+      "frontendUsage": {
+        "usedBy": "paymentMethodService.js (Admin Payment Methods Page)",
+        "frontendDescription": "Called when admin submits Add Payment Method form. Validates duplicate name. If set as default, clears other defaults."
+      },
+      "request": {
+        "body": {
+          "name": { "type": "string", "required": true },
+          "icon": { "type": "string", "required": false },
+          "description": { "type": "string", "required": false },
+          "isActive": { "type": "boolean", "required": false, "default": true },
+          "isDefault": { "type": "boolean", "required": false, "default": false }
+        }
+      },
+      "response": { "success": { "body": { "description": "New payment method object" } } },
+      "frontendDisplay": "Shows success toast, method appears in list"
+    },
+    {
+      "name": "Update Payment Method",
+      "method": "LOCAL",
+      "path": "localStorage key: 'payment_methods'",
+      "description": "Update a payment method's details",
+      "frontendUsage": {
+        "usedBy": "paymentMethodService.js (Admin Payment Methods Page)",
+        "frontendDescription": "Called when admin saves edited payment method. Validates name uniqueness."
+      },
+      "request": {
+        "params": { "id": { "type": "number", "required": true } },
+        "body": { "description": "Partial payment method fields" }
+      },
+      "response": { "success": { "body": true } },
+      "frontendDisplay": "Shows success toast, method updates in list"
+    },
+    {
+      "name": "Delete Payment Method",
+      "method": "LOCAL",
+      "path": "localStorage key: 'payment_methods'",
+      "description": "Remove a payment method and re-sequence priorities",
+      "frontendUsage": {
+        "usedBy": "paymentMethodService.js (Admin Payment Methods Page)",
+        "frontendDescription": "Called when admin confirms deletion. Remaining methods' priorities are re-indexed."
+      },
+      "request": { "params": { "id": { "type": "number", "required": true } } },
+      "response": { "success": { "body": true } },
+      "frontendDisplay": "Confirmation dialog, success toast, method removed, priorities re-ordered"
+    },
+    {
+      "name": "Toggle Payment Method Status",
+      "method": "LOCAL",
+      "path": "localStorage key: 'payment_methods'",
+      "description": "Toggle between Active and Inactive",
+      "frontendUsage": {
+        "usedBy": "paymentMethodService.js (Admin Payment Methods Page)",
+        "frontendDescription": "Called when admin clicks status toggle"
+      },
+      "request": {
+        "params": { "id": { "type": "number", "required": true } },
+        "body": { "status": { "type": "string", "required": true, "enum": ["Active", "Inactive"] } }
+      },
+      "response": { "success": { "body": true } },
+      "frontendDisplay": "Status badge toggles between green (Active) and gray (Inactive)"
+    },
+    {
+      "name": "Change Priority",
+      "method": "LOCAL",
+      "path": "localStorage key: 'payment_methods'",
+      "description": "Reorder payment method priority (swaps with target)",
+      "frontendUsage": {
+        "usedBy": "paymentMethodService.js (Admin Payment Methods Page)",
+        "frontendDescription": "Called when admin uses move up/down arrows or drag-and-drop"
+      },
+      "request": {
+        "params": { "id": { "type": "number", "required": true } },
+        "body": { "newPriority": { "type": "number", "required": true } }
+      },
+      "response": { "success": { "body": true } },
+      "frontendDisplay": "Method moves to new position, priority numbers update"
+    },
+    {
+      "name": "Set Default Payment Method",
+      "method": "LOCAL",
+      "path": "localStorage key: 'payment_methods'",
+      "description": "Set one method as default (clears others)",
+      "frontendUsage": {
+        "usedBy": "paymentMethodService.js (Admin Payment Methods Page)",
+        "frontendDescription": "Called when admin clicks 'Set as Default' button"
+      },
+      "request": { "params": { "id": { "type": "number", "required": true } } },
+      "response": { "success": { "body": true } },
+      "frontendDisplay": "Default badge moves to selected method, others lose default status"
+    }
+  ]
+}

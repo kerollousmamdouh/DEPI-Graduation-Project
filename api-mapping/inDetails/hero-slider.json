@@ -1,0 +1,209 @@
+{
+  "module": "Hero Slider",
+  "basePath": "/hero-slider",
+  "description": "Homepage hero slider/banner management - CRUD for promotional slides with images, categories, and priority ordering",
+  "authentication": "Admin endpoints require JWT token",
+  "dataStorage": "Currently mock (USE_MOCK=true) - localStorage key: 'hero-slides'",
+  "endpoints": [
+    {
+      "name": "Get All Slides",
+      "method": "GET",
+      "path": "/hero-slider",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Retrieve all hero slider slides for admin management",
+      "frontendUsage": {
+        "usedBy": "heroSliderService.js (Admin Dashboard Hero Slider Page)",
+        "frontendDescription": "Displays slides in a sortable list/table with preview image, title, subtitle, category link, status, priority order, and action buttons",
+        "mockStatus": "USE_MOCK=true - reads from localStorage key 'hero-slides'"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": [
+            {
+              "id": { "type": "number|string", "example": 1700000000000 },
+              "title": { "type": "string", "example": "Summer Collection" },
+              "subtitle": { "type": "string", "example": "Discover the latest trends" },
+              "buttonText": { "type": "string", "example": "Shop Now" },
+              "image": { "type": "string", "example": "https://example.com/slide.jpg" },
+              "categoryId": { "type": "number", "nullable": true, "example": 3 },
+              "status": { "type": "string", "enum": ["Active", "Hidden"], "example": "Active" },
+              "priority": { "type": "number", "example": 1 },
+              "createdAt": { "type": "string", "format": "ISO datetime" }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Slide list cards with image thumbnail, title, subtitle, category badge, drag-to-reorder handle, Active/Hidden status toggle, edit/delete buttons"
+    },
+    {
+      "name": "Add Slide",
+      "method": "POST",
+      "path": "/hero-slider",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Create a new hero slider slide",
+      "frontendUsage": {
+        "usedBy": "heroSliderService.js (Admin Dashboard)",
+        "frontendDescription": "Called when admin submits Add Slide form. Auto-generates id, status (Active), priority (next available), and createdAt.",
+        "mockStatus": "USE_MOCK=true"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "body": {
+          "title": { "type": "string", "required": true, "example": "Summer Collection" },
+          "subtitle": { "type": "string", "required": false, "example": "Discover the latest trends" },
+          "buttonText": { "type": "string", "required": false, "example": "Shop Now" },
+          "image": { "type": "string", "required": true, "example": "https://example.com/slide.jpg" },
+          "categoryId": { "type": "number", "required": false, "example": 3, "description": "Link slide to a category page" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 201,
+          "body": {
+            "id": { "type": "number" },
+            "title": { "type": "string" },
+            "status": "Active",
+            "priority": { "type": "number" },
+            "createdAt": { "type": "string", "format": "ISO datetime" }
+          }
+        }
+      },
+      "frontendDisplay": "Shows success toast, new slide card appears in the slider list, dialog closes"
+    },
+    {
+      "name": "Update Slide",
+      "method": "PUT",
+      "path": "/hero-slider/:id",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Update an existing slide's content",
+      "frontendUsage": {
+        "usedBy": "heroSliderService.js (Admin Dashboard)",
+        "frontendDescription": "Called when admin saves edited slide. Pre-fills form with existing data.",
+        "mockStatus": "USE_MOCK=true"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "params": {
+          "id": { "type": "number|string", "required": true }
+        },
+        "body": {
+          "description": "Partial slide data - any of: title, subtitle, buttonText, image, categoryId"
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "description": "Updated slide object" }
+        },
+        "error": {
+          "statusCode": 404,
+          "body": { "message": "Slide not found" }
+        }
+      },
+      "frontendDisplay": "Shows success toast, slide card updates with new content"
+    },
+    {
+      "name": "Delete Slide",
+      "method": "DELETE",
+      "path": "/hero-slider/:id",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Delete a slide and re-index priorities",
+      "frontendUsage": {
+        "usedBy": "heroSliderService.js (Admin Dashboard)",
+        "frontendDescription": "Called when admin confirms slide deletion. Remaining slides' priorities are re-indexed (1, 2, 3...).",
+        "mockStatus": "USE_MOCK=true"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "params": {
+          "id": { "type": "number|string", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": true
+        }
+      },
+      "frontendDisplay": "Confirmation dialog, success toast, slide removed from list, remaining slides reorder"
+    },
+    {
+      "name": "Toggle Slide Status",
+      "method": "PATCH",
+      "path": "/hero-slider/:id/status",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Toggle slide visibility between Active and Hidden",
+      "frontendUsage": {
+        "usedBy": "heroSliderService.js (Admin Dashboard)",
+        "frontendDescription": "Called when admin clicks the Active/Hidden toggle on a slide",
+        "mockStatus": "USE_MOCK=true"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "params": {
+          "id": { "type": "number|string", "required": true }
+        },
+        "body": {
+          "status": { "type": "string", "required": true, "enum": ["Active", "Hidden"], "example": "Active" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "description": "Updated slide with new status" }
+        }
+      },
+      "frontendDisplay": "Status badge toggles between green (Active) and gray (Hidden)"
+    },
+    {
+      "name": "Change Slide Priority",
+      "method": "PATCH",
+      "path": "/hero-slider/:id/priority",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Change the display order of a slide (swaps with target priority)",
+      "frontendUsage": {
+        "usedBy": "heroSliderService.js (Admin Dashboard)",
+        "frontendDescription": "Called when admin reorders slides (drag-and-drop or up/down arrows). Swaps priority with the target slide.",
+        "mockStatus": "USE_MOCK=true"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "params": {
+          "id": { "type": "number|string", "required": true }
+        },
+        "body": {
+          "priority": { "type": "number", "required": true, "example": 2 }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "description": "Updated slide with new priority" }
+        }
+      },
+      "frontendDisplay": "Slide order visually updates in the list, drag handle or up/down arrows reflect new position"
+    }
+  ]
+}

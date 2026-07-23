@@ -1,0 +1,145 @@
+{
+  "module": "Team Management",
+  "basePath": "localStorage-only",
+  "description": "Admin team member management - view, add, edit, remove team members, manage roles and permissions. All operations are localStorage-based.",
+  "authentication": "No real backend - admin auth is localStorage-based",
+  "dataStorage": "Pure localStorage - key: 'team_members', seed: teamData import",
+  "mockDelay": "250ms simulated latency",
+  "endpoints": [
+    {
+      "name": "Get All Team Members",
+      "method": "LOCAL",
+      "path": "localStorage key: 'team_members'",
+      "description": "Retrieve all team members",
+      "frontendUsage": {
+        "usedBy": "teamService.js (Admin Team Page)",
+        "frontendDescription": "Displays team member cards/list with avatar, name, email, phone, role, status, join date, and action buttons"
+      },
+      "request": {},
+      "response": {
+        "success": {
+          "body": [
+            {
+              "id": { "type": "number", "example": 1 },
+              "fullName": { "type": "string", "example": "Sara Manager" },
+              "email": { "type": "string", "example": "sara@dealora.com" },
+              "phone": { "type": "string", "nullable": true, "example": "01012345678" },
+              "avatar": { "type": "string", "example": "https://example.com/avatar.jpg" },
+              "role": { "type": "string", "enum": ["owner", "admin", "manager"], "example": "admin" },
+              "status": { "type": "string", "enum": ["Active", "Disabled"], "example": "Active" },
+              "joinDate": { "type": "string", "format": "date" },
+              "permissions": {
+                "type": "object",
+                "description": "Feature-level permissions",
+                "example": {
+                  "orders": true,
+                  "products": true,
+                  "users": false,
+                  "settings": false,
+                  "team": false
+                }
+              }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Team member cards with large avatar, name, role badge, email/phone, status indicator, joined date, and action buttons (edit, toggle status, manage permissions, delete). Owner card has delete disabled."
+    },
+    {
+      "name": "Add Team Member",
+      "method": "LOCAL",
+      "path": "localStorage key: 'team_members'",
+      "description": "Add a new team member",
+      "frontendUsage": {
+        "usedBy": "teamService.js (Admin Team Page)",
+        "frontendDescription": "Called when admin submits Add Member form. Validates email and phone uniqueness if provided.",
+        "mockBehavior": "Adds with auto-generated id, avatar fallback, status 'Active', joinDate"
+      },
+      "request": {
+        "body": {
+          "fullName": { "type": "string", "required": true },
+          "email": { "type": "string", "required": false },
+          "phone": { "type": "string", "required": false },
+          "role": { "type": "string", "required": true, "enum": ["admin", "manager"] },
+          "avatar": { "type": "string", "required": false },
+          "permissions": { "type": "object", "required": false }
+        }
+      },
+      "response": { "success": { "body": { "description": "New member object" } } },
+      "frontendDisplay": "Shows success toast, member card appears in team list"
+    },
+    {
+      "name": "Update Team Member",
+      "method": "LOCAL",
+      "path": "localStorage key: 'team_members'",
+      "description": "Update team member details",
+      "frontendUsage": {
+        "usedBy": "teamService.js (Admin Team Page)",
+        "frontendDescription": "Called when admin saves edited member. Validates email/phone uniqueness (excluding self)."
+      },
+      "request": {
+        "params": { "id": { "type": "number", "required": true } },
+        "body": { "description": "Partial member fields" }
+      },
+      "response": { "success": { "body": true } },
+      "frontendDisplay": "Shows success toast, member card updates"
+    },
+    {
+      "name": "Delete Team Member",
+      "method": "LOCAL",
+      "path": "localStorage key: 'team_members'",
+      "description": "Remove a team member (owner cannot be deleted)",
+      "frontendUsage": {
+        "usedBy": "teamService.js (Admin Team Page)",
+        "frontendDescription": "Called when admin confirms deletion. Throws error if trying to delete the owner."
+      },
+      "request": { "params": { "id": { "type": "number", "required": true } } },
+      "response": {
+        "success": { "body": true },
+        "error": { "body": { "message": "Owner cannot be deleted." } }
+      },
+      "frontendDisplay": "Confirmation dialog, success toast (or error toast for owner), member card removed"
+    },
+    {
+      "name": "Toggle Member Status",
+      "method": "LOCAL",
+      "path": "localStorage key: 'team_members'",
+      "description": "Toggle between Active and Disabled (owner cannot be disabled)",
+      "frontendUsage": {
+        "usedBy": "teamService.js (Admin Team Page)",
+        "frontendDescription": "Called when admin clicks status toggle. Skips toggle for owner role."
+      },
+      "request": { "params": { "id": { "type": "number", "required": true } } },
+      "response": { "success": { "body": true } },
+      "frontendDisplay": "Status badge toggles between green (Active) and gray (Disabled)"
+    },
+    {
+      "name": "Update Permissions",
+      "method": "LOCAL",
+      "path": "localStorage key: 'team_members'",
+      "description": "Update a member's feature-level permissions",
+      "frontendUsage": {
+        "usedBy": "teamService.js (Admin Team Page)",
+        "frontendDescription": "Called when admin saves permission changes from the permissions management dialog/modal"
+      },
+      "request": {
+        "params": { "id": { "type": "number", "required": true } },
+        "body": {
+          "permissions": {
+            "type": "object",
+            "required": true,
+            "example": {
+              "orders": true,
+              "products": true,
+              "users": false,
+              "settings": false,
+              "team": false
+            }
+          }
+        }
+      },
+      "response": { "success": { "body": true } },
+      "frontendDisplay": "Shows success toast, permissions matrix/doggles update"
+    }
+  ]
+}

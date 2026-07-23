@@ -1,0 +1,90 @@
+{
+  "module": "Deals",
+  "basePath": "localStorage-only",
+  "description": "Deals/promotions management - create, edit, delete promotional deals. All operations are localStorage-based.",
+  "authentication": "No real backend - admin auth is localStorage-based",
+  "dataStorage": "Pure localStorage - key: 'deals', seed: dealsData import",
+  "mockDelay": "300ms simulated latency",
+  "endpoints": [
+    {
+      "name": "Get All Deals",
+      "method": "LOCAL",
+      "path": "localStorage key: 'deals'",
+      "description": "Retrieve all configured deals/promotions",
+      "frontendUsage": {
+        "usedBy": "dealsService.js (Admin Deals Page)",
+        "frontendDescription": "Displays deals list with title, discount percentage, valid dates, associated products, and status"
+      },
+      "request": {},
+      "response": {
+        "success": {
+          "body": [
+            {
+              "id": { "type": "number", "example": 1700000000000 },
+              "title": { "type": "string", "example": "Summer Flash Sale" },
+              "description": { "type": "string", "example": "50% off on selected items" },
+              "discountPercent": { "type": "number", "example": 50 },
+              "startDate": { "type": "string", "format": "date" },
+              "endDate": { "type": "string", "format": "date" },
+              "isActive": { "type": "boolean", "example": true },
+              "products": { "type": "array", "description": "Associated product IDs or objects" }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Deals table with title, description, discount badge, date range, active status, product count, and action buttons (edit, delete, toggle)"
+    },
+    {
+      "name": "Create Deal",
+      "method": "LOCAL",
+      "path": "localStorage key: 'deals'",
+      "description": "Create a new promotional deal",
+      "frontendUsage": {
+        "usedBy": "dealsService.js (Admin Deals Page)",
+        "frontendDescription": "Called when admin submits Add Deal form. Auto-generates id from Date.now()."
+      },
+      "request": {
+        "body": {
+          "title": { "type": "string", "required": true },
+          "description": { "type": "string", "required": false },
+          "discountPercent": { "type": "number", "required": true },
+          "startDate": { "type": "string", "required": true, "format": "date" },
+          "endDate": { "type": "string", "required": true, "format": "date" },
+          "isActive": { "type": "boolean", "required": false, "default": true },
+          "products": { "type": "array", "required": false }
+        }
+      },
+      "response": { "success": { "body": { "description": "New deal object with generated id" } } },
+      "frontendDisplay": "Shows success toast, deal appears in list"
+    },
+    {
+      "name": "Update Deal",
+      "method": "LOCAL",
+      "path": "localStorage key: 'deals'",
+      "description": "Update an existing deal",
+      "frontendUsage": {
+        "usedBy": "dealsService.js (Admin Deals Page)",
+        "frontendDescription": "Called when admin saves edited deal. Returns merged object {id, ...data}."
+      },
+      "request": {
+        "params": { "id": { "type": "number", "required": true } },
+        "body": { "description": "Partial deal fields" }
+      },
+      "response": { "success": { "body": { "description": "Updated deal object" } } },
+      "frontendDisplay": "Shows success toast, deal updates in list"
+    },
+    {
+      "name": "Delete Deal",
+      "method": "LOCAL",
+      "path": "localStorage key: 'deals'",
+      "description": "Remove a deal",
+      "frontendUsage": {
+        "usedBy": "dealsService.js (Admin Deals Page)",
+        "frontendDescription": "Called when admin confirms deal deletion"
+      },
+      "request": { "params": { "id": { "type": "number", "required": true } } },
+      "response": { "success": { "body": { "description": "Deleted deal id" } } },
+      "frontendDisplay": "Confirmation dialog, success toast, deal removed from list"
+    }
+  ]
+}

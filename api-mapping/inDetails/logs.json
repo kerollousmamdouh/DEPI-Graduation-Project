@@ -1,0 +1,42 @@
+{
+  "module": "Admin Logs",
+  "basePath": "/api/logs",
+  "description": "Admin action audit logs - track all administrative operations for security and accountability",
+  "authentication": "Bearer JWT token required, super_admin only",
+  "endpoints": [
+    {
+      "name": "Get Admin Logs",
+      "method": "GET",
+      "path": "/api/logs",
+      "auth": true,
+      "roles": ["super_admin"],
+      "description": "Retrieve all admin action logs with admin info",
+      "frontendUsage": {
+        "usedBy": "Admin Activity Logs Page",
+        "frontendDescription": "Displays chronological list of all admin actions (product edits, order status changes, settings updates, etc.) with admin name, email, role, IP address, and timestamp"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": [
+            {
+              "id": { "type": "number", "example": 1 },
+              "action": { "type": "string", "example": "Product updated: Wireless Headphones" },
+              "ip_address": { "type": "string", "example": "192.168.1.100" },
+              "created_at": { "type": "string", "format": "datetime" },
+              "admin_name": { "type": "string", "example": "Admin User" },
+              "admin_email": { "type": "string", "example": "admin@dealora.com" },
+              "role": { "type": "string", "example": "super_admin" }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Activity timeline/table with timestamp, action description, admin avatar/name, admin role badge, IP address. Sorted newest first. May include pagination."
+    }
+  ]
+}

@@ -1,0 +1,133 @@
+{
+  "module": "Notifications",
+  "basePath": "/api/notifications",
+  "description": "Site notification/popup management - public active notifications and admin CRUD",
+  "endpoints": [
+    {
+      "name": "Get Active Notifications",
+      "method": "GET",
+      "path": "/api/notifications/active",
+      "auth": false,
+      "description": "Retrieve active notifications for storefront display",
+      "frontendUsage": {
+        "usedBy": "Storefront - Auto-popup Notification Banner",
+        "frontendDescription": "Displays timed popup notification on storefront. Auto-dismisses after display_duration_seconds. Shows title and message."
+      },
+      "request": {},
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": [
+            {
+              "id": { "type": "number", "example": 1 },
+              "display_duration_seconds": { "type": "number", "example": 10, "description": "How long to show the notification" },
+              "title": { "type": "string", "example": "Special Offer!" },
+              "message": { "type": "string", "example": "Get 20% off on all electronics this weekend" }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Auto-appearing popup/toast notification with title and message, auto-dismisses after specified duration, can be manually closed"
+    },
+    {
+      "name": "Get All Notifications (Admin)",
+      "method": "GET",
+      "path": "/api/notifications",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Retrieve all notifications for admin management",
+      "frontendUsage": {
+        "usedBy": "Admin Notification Management Page",
+        "frontendDescription": "Displays notification list with title, message, schedule (start/end dates), duration, and active status"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": [
+            {
+              "id": { "type": "number" },
+              "title_ar": { "type": "string" },
+              "title_en": { "type": "string", "nullable": true },
+              "message_ar": { "type": "string" },
+              "message_en": { "type": "string", "nullable": true },
+              "display_duration_seconds": { "type": "number" },
+              "start_at": { "type": "string", "format": "datetime" },
+              "expires_at": { "type": "string", "format": "datetime" },
+              "is_active": { "type": "boolean" },
+              "created_at": { "type": "string", "format": "datetime" }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Admin table with notification title, message preview, schedule dates, duration, active status, and delete button"
+    },
+    {
+      "name": "Create Notification",
+      "method": "POST",
+      "path": "/api/notifications",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Create a new site notification",
+      "frontendUsage": {
+        "usedBy": "Admin Notification Management Page",
+        "frontendDescription": "Called when admin creates notification with title, message, display duration, and active schedule"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "body": {
+          "title_ar": { "type": "string", "required": true, "example": "عرض خاص" },
+          "title_en": { "type": "string", "required": false, "example": "Special Offer" },
+          "message_ar": { "type": "string", "required": true, "example": "خصم 20% على جميع الإلكترونيات" },
+          "message_en": { "type": "string", "required": false, "example": "20% off all electronics" },
+          "display_duration_seconds": { "type": "number", "required": false, "default": 10, "example": 15 },
+          "start_at": { "type": "string", "required": true, "format": "datetime", "example": "2024-06-01T00:00:00Z" },
+          "expires_at": { "type": "string", "required": true, "format": "datetime", "example": "2024-06-30T23:59:59Z" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 201,
+          "body": {
+            "message": { "type": "string", "example": "Notification created successfully" },
+            "notificationId": { "type": "number", "example": 8 }
+          }
+        }
+      },
+      "frontendDisplay": "Shows success toast, refreshes notification list"
+    },
+    {
+      "name": "Delete Notification",
+      "method": "DELETE",
+      "path": "/api/notifications/:id",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Delete a notification",
+      "frontendUsage": {
+        "usedBy": "Admin Notification Management Page",
+        "frontendDescription": "Called when admin confirms notification deletion"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "params": {
+          "id": { "type": "number", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "message": "Notification deleted successfully" }
+        }
+      },
+      "frontendDisplay": "Confirmation dialog, success toast, notification removed from table"
+    }
+  ]
+}

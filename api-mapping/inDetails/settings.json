@@ -1,0 +1,77 @@
+{
+  "module": "Settings",
+  "basePath": "/api/settings",
+  "description": "Global store settings - store name, logo, contact info, delivery fees, and other configuration",
+  "endpoints": [
+    {
+      "name": "Get Store Settings",
+      "method": "GET",
+      "path": "/api/settings",
+      "auth": false,
+      "description": "Retrieve all store settings as a key-value map",
+      "frontendUsage": {
+        "usedBy": "Storefront (global config), Admin Dashboard",
+        "frontendDescription": "Loads store-wide configuration including store name, logo, phone numbers, social links, delivery fees, currency, etc. Used across both storefront and admin."
+      },
+      "request": {},
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": {
+            "store_name": {
+              "value": { "type": "string", "example": "Dealora Market" },
+              "display_name": { "type": "string", "example": "Store Name" }
+            },
+            "store_logo": {
+              "value": { "type": "string", "example": "https://example.com/logo.png" },
+              "display_name": { "type": "string", "example": "Store Logo" }
+            },
+            "delivery_fee": {
+              "value": { "type": "string", "example": "50" },
+              "display_name": { "type": "string", "example": "Delivery Fee (EGP)" }
+            },
+            "free_delivery_threshold": {
+              "value": { "type": "string", "example": "500" },
+              "display_name": { "type": "string", "example": "Free Delivery Threshold" }
+            },
+            "currency": {
+              "value": { "type": "string", "example": "EGP" },
+              "display_name": { "type": "string", "example": "Currency" }
+            },
+            "description": "Additional keys for phone, whatsapp, social links, etc."
+          }
+        }
+      },
+      "frontendDisplay": "Not displayed as a page - values populate store header (name/logo), footer (contact info), checkout (delivery fee), and various UI components"
+    },
+    {
+      "name": "Update Store Setting",
+      "method": "PUT",
+      "path": "/api/settings",
+      "auth": true,
+      "roles": ["admin"],
+      "description": "Update a single store setting by key name",
+      "frontendUsage": {
+        "usedBy": "Admin Settings Page",
+        "frontendDescription": "Called when admin saves a setting change. Updates one key-value pair at a time.",
+        "note": "Uses authorizeRoles('admin') instead of 'super_admin'/'store_manager' - may be intentional or a bug"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "body": {
+          "key_name": { "type": "string", "required": true, "example": "delivery_fee" },
+          "key_value": { "type": "string", "required": true, "example": "75" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "message": "Setting updated successfully" }
+        }
+      },
+      "frontendDisplay": "Shows success toast, setting value updates in the admin settings form"
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "module": "Footer Settings",
+  "basePath": "/footer-settings",
+  "description": "Store footer configuration - contact info, social links, locations, working hours",
+  "authentication": "Admin endpoints require JWT token",
+  "dataStorage": "Currently mock (USE_MOCK=true) - localStorage key: 'dealora_footer_settings'",
+  "endpoints": [
+    {
+      "name": "Get Footer Settings",
+      "method": "GET",
+      "path": "/footer-settings",
+      "auth": false,
+      "description": "Retrieve current footer configuration",
+      "frontendUsage": {
+        "usedBy": "footerService.js (Admin Dashboard Footer Settings Page)",
+        "frontendDescription": "Loads footer data into admin form for editing. Also used by storefront footer component to display contact info and links.",
+        "mockStatus": "USE_MOCK=true - reads from localStorage key 'dealora_footer_settings'"
+      },
+      "request": {},
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": {
+            "phones": { "type": "array", "items": { "type": "string" }, "example": ["01012345678", "01098765432"] },
+            "whatsappNumber": { "type": "string", "example": "201012345678" },
+            "socialLinks": {
+              "type": "object",
+              "example": {
+                "facebook": "https://facebook.com/dealora",
+                "instagram": "https://instagram.com/dealora",
+                "twitter": "https://twitter.com/dealora"
+              }
+            },
+            "locations": { "type": "array", "items": { "type": "string" }, "example": ["Cairo, Egypt", "Alexandria, Egypt"] },
+            "workingHours": { "type": "string", "example": "9:00 AM - 10:00 PM" },
+            "description": "Additional fields like email, about text, etc."
+          }
+        }
+      },
+      "frontendDisplay": "Storefront footer: phone numbers as clickable links, WhatsApp chat button, social media icon links, location text, working hours. Admin: form fields pre-filled with current values."
+    },
+    {
+      "name": "Save Footer Settings",
+      "method": "PUT",
+      "path": "/footer-settings",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Update the entire footer configuration (full replace)",
+      "frontendUsage": {
+        "usedBy": "footerService.js (Admin Dashboard Footer Settings Page)",
+        "frontendDescription": "Called when admin saves the footer settings form. Replaces all footer data with new values.",
+        "mockStatus": "USE_MOCK=true - replaces localStorage value"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "body": {
+          "phones": { "type": "array", "items": { "type": "string" }, "required": true },
+          "whatsappNumber": { "type": "string", "required": false },
+          "socialLinks": { "type": "object", "required": false },
+          "locations": { "type": "array", "items": { "type": "string" }, "required": false },
+          "workingHours": { "type": "string", "required": false },
+          "description": "Full footer settings object"
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "description": "Saved footer settings object" }
+        }
+      },
+      "frontendDisplay": "Shows success toast, footer preview updates if available"
+    },
+    {
+      "name": "Reset Footer Settings",
+      "method": "POST",
+      "path": "/footer-settings/reset",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Reset footer settings to default values",
+      "frontendUsage": {
+        "usedBy": "footerService.js (Admin Dashboard Footer Settings Page)",
+        "frontendDescription": "Called when admin clicks 'Reset to Defaults' button. Restores original default footer data.",
+        "mockStatus": "USE_MOCK=true - resets to imported footerData default"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "description": "Default footer settings object" }
+        }
+      },
+      "frontendDisplay": "Shows confirmation dialog, then success toast, form fields reset to default values"
+    }
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "module": "Branches",
+  "basePath": "/api/branches",
+  "description": "Store branch/location management - public active branches and admin CRUD",
+  "endpoints": [
+    {
+      "name": "Get Active Branches",
+      "method": "GET",
+      "path": "/api/branches/active",
+      "auth": false,
+      "description": "Retrieve all active store branches for public display",
+      "frontendUsage": {
+        "usedBy": "Storefront Contact/Location Page",
+        "frontendDescription": "Displays store locations on map/list with name, address, phone, working hours, and Google Maps link"
+      },
+      "request": {},
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": [
+            {
+              "id": { "type": "number", "example": 1 },
+              "phone": { "type": "string", "example": "01012345678" },
+              "gps_link": { "type": "string", "nullable": true, "example": "https://maps.google.com/..." },
+              "branch_link": { "type": "string", "nullable": true, "example": "https://example.com/branch" },
+              "name": { "type": "string", "example": "Dealora Cairo Branch" },
+              "address": { "type": "string", "example": "15 Main Street, Cairo" },
+              "working_hours": { "type": "string", "example": "9:00 AM - 10:00 PM" }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Branch cards on map with pin markers, each showing branch name, address, phone (clickable), working hours, and 'Get Directions' button linking to GPS"
+    },
+    {
+      "name": "Create Branch",
+      "method": "POST",
+      "path": "/api/branches",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Add a new store branch",
+      "frontendUsage": {
+        "usedBy": "Admin Branch Management Page",
+        "frontendDescription": "Called when admin submits Add Branch form with location details"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "body": {
+          "name_ar": { "type": "string", "required": true, "example": "فرع القاهرة" },
+          "name_en": { "type": "string", "required": false, "example": "Cairo Branch" },
+          "address_ar": { "type": "string", "required": false, "example": "15 شارع رئيسي، القاهرة" },
+          "address_en": { "type": "string", "required": false, "example": "15 Main Street, Cairo" },
+          "phone": { "type": "string", "required": false, "example": "01012345678" },
+          "working_hours_ar": { "type": "string", "required": false, "example": "9 صباحاً - 10 مساءً" },
+          "working_hours_en": { "type": "string", "required": false, "example": "9:00 AM - 10:00 PM" },
+          "gps_link": { "type": "string", "required": false, "example": "https://maps.google.com/..." },
+          "branch_link": { "type": "string", "required": false }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 201,
+          "body": {
+            "message": { "type": "string", "example": "Branch created successfully" },
+            "branchId": { "type": "number", "example": 5 }
+          }
+        }
+      },
+      "frontendDisplay": "Shows success toast, refreshes branch table"
+    },
+    {
+      "name": "Update Branch",
+      "method": "PUT",
+      "path": "/api/branches/:id",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Update an existing branch's details",
+      "frontendUsage": {
+        "usedBy": "Admin Branch Management Page",
+        "frontendDescription": "Called when admin saves edited branch details. Same form as create but pre-filled."
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "params": {
+          "id": { "type": "number", "required": true }
+        },
+        "body": {
+          "description": "Same fields as Create Branch + is_active boolean",
+          "is_active": { "type": "boolean", "required": false }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "message": "Branch updated successfully" }
+        }
+      },
+      "frontendDisplay": "Shows success toast, updates branch in table"
+    },
+    {
+      "name": "Delete Branch",
+      "method": "DELETE",
+      "path": "/api/branches/:id",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Delete a branch",
+      "frontendUsage": {
+        "usedBy": "Admin Branch Management Page",
+        "frontendDescription": "Called when admin confirms branch deletion"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "params": {
+          "id": { "type": "number", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "message": "Branch deleted successfully" }
+        }
+      },
+      "frontendDisplay": "Confirmation dialog, success toast, branch removed from table"
+    }
+  ]
+}

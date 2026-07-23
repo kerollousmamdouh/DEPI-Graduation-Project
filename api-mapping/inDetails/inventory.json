@@ -1,0 +1,78 @@
+{
+  "module": "Inventory",
+  "basePath": "/api/inventory",
+  "description": "Product inventory/stock management - receive stock batches and view inventory levels",
+  "authentication": "Bearer JWT token required, admin roles only",
+  "endpoints": [
+    {
+      "name": "Receive Inventory Batch",
+      "method": "POST",
+      "path": "/api/inventory/receive",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Record a new stock shipment/receipt for a product. Creates batch record and updates available quantity.",
+      "frontendUsage": {
+        "usedBy": "Admin Inventory Management Page",
+        "frontendDescription": "Called when admin records receiving new stock. Adds batch to history and increments product's available quantity."
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "body": {
+          "product_id": { "type": "number", "required": true, "example": 5 },
+          "batch_number": { "type": "string", "required": false, "example": "BATCH-2024-001" },
+          "quantity_received": { "type": "number", "required": true, "example": 100 },
+          "expiry_date": { "type": "string", "required": false, "format": "date", "example": "2025-12-31" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 201,
+          "body": { "message": { "type": "string", "example": "Inventory batch recorded successfully" } }
+        },
+        "error": {
+          "statusCode": 400,
+          "body": { "message": "Invalid product ID" }
+        }
+      },
+      "frontendDisplay": "Shows success toast, batch appears in inventory history table, product stock count updates"
+    },
+    {
+      "name": "Get Inventory Batches",
+      "method": "GET",
+      "path": "/api/inventory",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "View all inventory batch records with product details",
+      "frontendUsage": {
+        "usedBy": "Admin Inventory Management Page",
+        "frontendDescription": "Displays inventory batch history table showing each shipment with product name, SKU, batch number, quantity, expiry date, and receipt date"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": [
+            {
+              "id": { "type": "number", "example": 1 },
+              "product_id": { "type": "number", "example": 5 },
+              "product_name": { "type": "string", "example": "Wireless Headphones" },
+              "sku": { "type": "string", "example": "WH-001" },
+              "unit": { "type": "string", "example": "piece" },
+              "batch_number": { "type": "string", "nullable": true, "example": "BATCH-2024-001" },
+              "quantity_received": { "type": "number", "example": 100 },
+              "expiry_date": { "type": "string", "nullable": true, "format": "date" },
+              "created_at": { "type": "string", "format": "datetime" }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Inventory history table with sortable columns: Date, Product Name, SKU, Batch #, Quantity, Expiry. May include search/filter by product."
+    }
+  ]
+}

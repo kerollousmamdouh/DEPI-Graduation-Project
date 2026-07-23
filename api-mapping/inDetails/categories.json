@@ -1,0 +1,201 @@
+{
+  "module": "Categories",
+  "basePath": "/api/categories",
+  "description": "Product category management - list, create, update, delete, and toggle visibility",
+  "endpoints": [
+    {
+      "name": "Get All Categories",
+      "method": "GET",
+      "path": "/api/categories",
+      "auth": false,
+      "description": "Retrieve all product categories",
+      "frontendUsage": {
+        "usedBy": "categoryService.js (Admin Dashboard), heroSliderService.js (Admin Dashboard)",
+        "frontendDescription": "Displays category list in admin table, used in product forms for category selection, used in hero slider slide creation for category linking",
+        "mockStatus": "USE_MOCK=true - reads from localStorage key 'categories'",
+        "mockData": "categoriesData seed file"
+      },
+      "request": {
+        "headers": {},
+        "params": {}
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": [
+            {
+              "id": { "type": "number", "example": 1 },
+              "slug": { "type": "string", "example": "electronics" },
+              "parent_id": { "type": "number", "nullable": true, "example": null },
+              "image_url": { "type": "string", "example": "https://example.com/cat.jpg" },
+              "is_active": { "type": "boolean", "example": true },
+              "created_at": { "type": "string", "format": "datetime" },
+              "name": { "type": "string", "example": "Electronics" }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Rendered as table rows in Categories page with name, image, status badge, and action buttons (edit/delete/toggle)"
+    },
+    {
+      "name": "Get Active Categories",
+      "method": "GET",
+      "path": "/api/categories/active",
+      "auth": false,
+      "description": "Retrieve only active (visible) categories - used by storefront",
+      "frontendUsage": {
+        "usedBy": "heroSliderService.js (Admin Dashboard)",
+        "frontendDescription": "Populates category dropdown when creating/editing hero slider slides - only shows active categories",
+        "mockStatus": "USE_MOCK=true - returns static HERO_CATEGORIES"
+      },
+      "request": {},
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": [
+            {
+              "id": { "type": "number" },
+              "name": { "type": "string" },
+              "slug": { "type": "string" },
+              "image_url": { "type": "string" }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Shown in dropdown selector when adding/editing hero slides"
+    },
+    {
+      "name": "Create Category",
+      "method": "POST",
+      "path": "/api/categories",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Create a new product category",
+      "frontendUsage": {
+        "usedBy": "categoryService.js (Admin Dashboard)",
+        "frontendDescription": "Called when admin submits the Add Category form. Validates duplicate Arabic/English names before API call.",
+        "mockStatus": "USE_MOCK=true - adds to localStorage with auto-generated id"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "body": {
+          "name_ar": { "type": "string", "required": true, "example": "إلكترونيات", "description": "Arabic name (required)" },
+          "name_en": { "type": "string", "required": false, "example": "Electronics", "description": "English name" },
+          "slug": { "type": "string", "required": true, "example": "electronics" },
+          "parent_id": { "type": "number", "required": false, "example": null, "description": "Parent category ID for subcategories" },
+          "image_url": { "type": "string", "required": false, "example": "https://example.com/cat.jpg" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 201,
+          "body": {
+            "message": { "type": "string", "example": "Category created successfully" },
+            "categoryId": { "type": "number", "example": 15 }
+          }
+        },
+        "error": {
+          "statusCode": 400,
+          "body": { "message": "Category name already exists" }
+        }
+      },
+      "frontendDisplay": "Shows success toast, refreshes category table, closes add dialog"
+    },
+    {
+      "name": "Update Category",
+      "method": "PUT",
+      "path": "/api/categories/:id",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Update an existing category",
+      "frontendUsage": {
+        "usedBy": "categoryService.js (Admin Dashboard)",
+        "frontendDescription": "Called when admin saves edited category details",
+        "mockStatus": "USE_MOCK=true - updates in localStorage"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "params": {
+          "id": { "type": "number", "required": true, "description": "Category ID" }
+        },
+        "body": {
+          "name_ar": { "type": "string", "required": false },
+          "name_en": { "type": "string", "required": false },
+          "slug": { "type": "string", "required": false },
+          "image_url": { "type": "string", "required": false },
+          "parent_id": { "type": "number", "required": false }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "message": "Category updated successfully" }
+        }
+      },
+      "frontendDisplay": "Shows success toast, updates row in category table, closes edit dialog"
+    },
+    {
+      "name": "Delete Category",
+      "method": "DELETE",
+      "path": "/api/categories/:id",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Delete a category",
+      "frontendUsage": {
+        "usedBy": "categoryService.js (Admin Dashboard)",
+        "frontendDescription": "Called when admin clicks delete button with confirmation dialog",
+        "mockStatus": "USE_MOCK=true - removes from localStorage"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "params": {
+          "id": { "type": "number", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "message": "Category deleted successfully" }
+        }
+      },
+      "frontendDisplay": "Shows confirmation dialog first, then success toast, removes row from table"
+    },
+    {
+      "name": "Toggle Category Status",
+      "method": "PATCH",
+      "path": "/api/categories/:id/status",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Toggle category active/hidden status",
+      "frontendUsage": {
+        "usedBy": "categoryService.js (Admin Dashboard)",
+        "frontendDescription": "Called when admin clicks the status toggle switch on a category row",
+        "mockStatus": "USE_MOCK=true - updates status in localStorage"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "params": {
+          "id": { "type": "number", "required": true }
+        },
+        "body": {
+          "status": { "type": "string", "required": true, "enum": ["Active", "Hidden"], "example": "Active" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "message": "Status updated successfully" }
+        }
+      },
+      "frontendDisplay": "Toggles badge color between green (Active) and gray (Hidden) in the table"
+    }
+  ]
+}

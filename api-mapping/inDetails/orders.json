@@ -1,0 +1,203 @@
+{
+  "module": "Orders",
+  "basePath": "/api/orders",
+  "description": "Order placement and management - checkout, view orders, update status",
+  "authentication": "Bearer JWT token required for all endpoints",
+  "adminEndpoints": {
+    "basePath": "/orders",
+    "description": "Admin dashboard order management (currently mock)",
+    "mockStatus": "USE_MOCK=true - reads/writes localStorage key 'dealora_market_orders'"
+  },
+  "endpoints": [
+    {
+      "name": "Checkout (Place Order)",
+      "method": "POST",
+      "path": "/api/orders/checkout",
+      "auth": true,
+      "roles": ["customer"],
+      "description": "Place an order from cart items. Validates stock, creates order, decrements inventory, clears cart.",
+      "frontendUsage": {
+        "usedBy": "Storefront Checkout Page",
+        "frontendDescription": "Called when user confirms order after selecting delivery address and payment method. Requires either address_id or manual_address string."
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "body": {
+          "address_id": { "type": "number", "required": false, "example": 3, "description": "ID from saved addresses (user_addresses table)" },
+          "phone_number": { "type": "string", "required": true, "example": "01012345678" },
+          "notes": { "type": "string", "required": false, "example": "Leave at the door" },
+          "manual_address": { "type": "string", "required": false, "example": "15 Main St, Cairo", "description": "Free-text address if no saved address used" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 201,
+          "body": {
+            "message": { "type": "string", "example": "Order placed successfully" },
+            "orderId": { "type": "number", "example": 101 },
+            "subtotal": { "type": "number", "example": 159.98 },
+            "total_amount": { "type": "number", "example": 169.98, "description": "Subtotal + delivery fees" }
+          }
+        },
+        "error": {
+          "statusCode": 400,
+          "body": { "message": "Insufficient stock for product X" }
+        }
+      },
+      "frontendDisplay": "Shows loading spinner during checkout, success page with order ID and total, then redirects to order confirmation. Shows error toast if stock issue."
+    },
+    {
+      "name": "Get My Orders",
+      "method": "GET",
+      "path": "/api/orders/my-orders",
+      "auth": true,
+      "roles": ["customer"],
+      "description": "Get all orders for the logged-in customer",
+      "frontendUsage": {
+        "usedBy": "Storefront My Orders Page",
+        "frontendDescription": "Displays order history with order ID, date, status badge, items summary, and total amount"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": [
+            {
+              "id": { "type": "number", "example": 101 },
+              "status": { "type": "string", "enum": ["pending", "processing", "shipped", "delivered", "canceled"], "example": "pending" },
+              "total_amount": { "type": "number", "example": 169.98 },
+              "created_at": { "type": "string", "format": "datetime" },
+              "items": { "type": "array", "description": "Order line items with product details" }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Order cards/table showing order number, date, status with colored badge (pending=yellow, shipped=blue, delivered=green, canceled=red), item count, and total"
+    },
+    {
+      "name": "Get All Orders (Admin)",
+      "method": "GET",
+      "path": "/orders",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Retrieve all orders for admin dashboard - MOCK endpoint",
+      "frontendUsage": {
+        "usedBy": "orderService.js (Admin Dashboard)",
+        "frontendDescription": "Displays all customer orders in admin table with filtering by status, search, and pagination",
+        "mockStatus": "USE_MOCK=true - returns all orders from localStorage",
+        "mockDataKey": "dealora_market_orders"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": {
+            "success": true,
+            "data": [
+              {
+                "id": { "type": "string|number", "example": "ORDER-1700000000000" },
+                "customerName": { "type": "string", "example": "Ahmed Ali" },
+                "customerEmail": { "type": "string", "example": "ahmed@example.com" },
+                "totalPrice": { "type": "number", "example": 299.97 },
+                "status": { "type": "string", "enum": ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELED"] },
+                "items": { "type": "array" },
+                "createdAt": { "type": "string", "format": "datetime" }
+              }
+            ],
+            "message": null
+          }
+        }
+      },
+      "frontendDisplay": "Orders table with columns: Order ID, Customer Name, Date, Total, Status badge, Action buttons (view details, change status, cancel)"
+    },
+    {
+      "name": "Get Order By ID (Admin)",
+      "method": "GET",
+      "path": "/orders/:id",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Get single order details for admin - MOCK endpoint",
+      "frontendUsage": {
+        "usedBy": "orderService.js (Admin Dashboard)",
+        "frontendDescription": "Opens order detail modal/panel showing full order info, customer details, items list, and status history",
+        "mockStatus": "USE_MOCK=true"
+      },
+      "request": {
+        "params": {
+          "id": { "type": "string|number", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": {
+            "success": true,
+            "data": {
+              "id": { "type": "string|number" },
+              "customerName": { "type": "string" },
+              "customerEmail": { "type": "string" },
+              "customerPhone": { "type": "string" },
+              "totalPrice": { "type": "number" },
+              "status": { "type": "string" },
+              "items": { "type": "array" },
+              "paymentMethod": { "type": "string" },
+              "address": { "type": "string" },
+              "createdAt": { "type": "string" }
+            }
+          }
+        },
+        "error": {
+          "statusCode": 404,
+          "body": { "message": "لم يتم العثور على الطلب" }
+        }
+      },
+      "frontendDisplay": "Order detail panel with customer info, delivery address, itemized product list with quantities and prices, order total, and status timeline"
+    },
+    {
+      "name": "Update Order Status (Admin)",
+      "method": "PATCH",
+      "path": "/orders/:id/status",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Update order status (admin) - MOCK endpoint",
+      "frontendUsage": {
+        "usedBy": "orderService.js (Admin Dashboard)",
+        "frontendDescription": "Called when admin changes order status via dropdown. Status options: PENDING, PROCESSING, SHIPPED, DELIVERED, CANCELED.",
+        "mockStatus": "USE_MOCK=true"
+      },
+      "request": {
+        "params": {
+          "id": { "type": "string|number", "required": true }
+        },
+        "body": {
+          "status": { "type": "string", "required": true, "enum": ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELED"], "example": "SHIPPED" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": {
+            "success": true,
+            "data": { "description": "Updated order object" },
+            "message": null
+          }
+        },
+        "error": {
+          "statusCode": 400,
+          "body": { "message": "Invalid status value" }
+        }
+      },
+      "frontendDisplay": "Status badge color updates in the orders table, success toast notification"
+    }
+  ]
+}

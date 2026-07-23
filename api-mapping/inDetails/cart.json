@@ -1,0 +1,102 @@
+{
+  "module": "Cart",
+  "basePath": "/api/cart",
+  "description": "Shopping cart management - add items, view cart, remove items. Requires authentication.",
+  "authentication": "Bearer JWT token required for all endpoints",
+  "endpoints": [
+    {
+      "name": "Add To Cart",
+      "method": "POST",
+      "path": "/api/cart",
+      "auth": true,
+      "roles": ["customer"],
+      "description": "Add a product to the shopping cart with optional quantity",
+      "frontendUsage": {
+        "usedBy": "Storefront Product Detail Page",
+        "frontendDescription": "Called when user clicks 'Add to Cart' button on product page. Validates stock availability before adding."
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "body": {
+          "product_id": { "type": "number", "required": true, "example": 5 },
+          "quantity": { "type": "number", "required": false, "default": 1, "example": 2 }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 201,
+          "body": { "message": { "type": "string", "example": "Item added to cart" } }
+        },
+        "error": {
+          "statusCode": 400,
+          "body": { "message": "Insufficient stock" }
+        }
+      },
+      "frontendDisplay": "Shows success toast 'Added to cart', updates cart badge count in header, button may show loading spinner during request"
+    },
+    {
+      "name": "Get Cart",
+      "method": "GET",
+      "path": "/api/cart",
+      "auth": true,
+      "roles": ["customer"],
+      "description": "Retrieve all items in the user's shopping cart",
+      "frontendUsage": {
+        "usedBy": "Storefront Cart Page",
+        "frontendDescription": "Displays list of cart items with product image, name, price, quantity, and remove button. Shows cart total."
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": [
+            {
+              "cart_item_id": { "type": "number", "example": 1 },
+              "quantity": { "type": "number", "example": 2 },
+              "product_id": { "type": "number", "example": 5 },
+              "product_image": { "type": "string", "example": "https://example.com/product.jpg" },
+              "original_price": { "type": "number", "example": 99.99 },
+              "name": { "type": "string", "example": "Wireless Headphones" },
+              "unit": { "type": "string", "example": "piece" },
+              "price": { "type": "number", "example": 79.99, "description": "Current price (with offer if applicable)" }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Cart page showing product cards with image, name, unit price, quantity controls, subtotal per item, and overall cart total at bottom with 'Proceed to Checkout' button"
+    },
+    {
+      "name": "Remove From Cart",
+      "method": "DELETE",
+      "path": "/api/cart/:productId",
+      "auth": true,
+      "roles": ["customer"],
+      "description": "Remove a product from the shopping cart",
+      "frontendUsage": {
+        "usedBy": "Storefront Cart Page",
+        "frontendDescription": "Called when user clicks the remove/delete button (X icon) on a cart item"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "params": {
+          "productId": { "type": "number", "required": true, "description": "Product ID to remove from cart" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "message": { "type": "string", "example": "Item removed from cart" } }
+        }
+      },
+      "frontendDisplay": "Item smoothly disappears from cart list with animation, cart total recalculates, cart badge count decrements"
+    }
+  ]
+}

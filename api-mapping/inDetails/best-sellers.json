@@ -1,0 +1,81 @@
+{
+  "module": "Best Sellers Analytics",
+  "basePath": "localStorage-only (computed)",
+  "description": "Best-selling products analytics - computed from seed data with time-based filtering and ranking. No API calls - pure frontend computation.",
+  "authentication": "No real backend",
+  "dataStorage": "In-memory computation from BEST_SELLERS seed data",
+  "mockDelay": "300ms simulated latency",
+  "endpoints": [
+    {
+      "name": "Fetch Best Sellers",
+      "method": "LOCAL (computed)",
+      "path": "In-memory from BEST_SELLERS constant",
+      "description": "Compute best-selling products with time period, category, and limit filters",
+      "frontendUsage": {
+        "usedBy": "bestProductService.js (Admin Best Sellers / Analytics Page)",
+        "frontendDescription": "Displays ranked list of top-selling products with sales metrics, revenue, and trend percentage. Filterable by time period (today/week/month/year), category, and result limit."
+      },
+      "request": {
+        "params": {
+          "time": {
+            "type": "string",
+            "required": false,
+            "enum": ["today", "week", "month", "year"],
+            "default": "week",
+            "description": "Time period for sales data"
+          },
+          "limit": {
+            "type": "string|number",
+            "required": false,
+            "default": "all",
+            "description": "Max results to return (number or 'all')"
+          },
+          "category": {
+            "type": "string",
+            "required": false,
+            "example": "Electronics",
+            "description": "Filter by category name (or 'All')"
+          },
+          "categoryId": {
+            "type": "number",
+            "required": false,
+            "description": "Filter by category ID"
+          }
+        }
+      },
+      "response": {
+        "success": {
+          "body": [
+            {
+              "id": { "type": "number", "example": 1 },
+              "name": { "type": "string", "example": "Wireless Headphones" },
+              "image": { "type": "string", "example": "https://example.com/product.jpg" },
+              "category": { "type": "string", "example": "Electronics" },
+              "price": { "type": "number", "example": 99.99 },
+              "salePrice": { "type": "number", "nullable": true, "example": 79.99 },
+              "todaySold": { "type": "number", "example": 15 },
+              "weekSold": { "type": "number", "example": 85 },
+              "monthSold": { "type": "number", "example": 320 },
+              "yearSold": { "type": "number", "example": 3500 },
+              "todayRevenue": { "type": "number", "example": 1499.85 },
+              "weekRevenue": { "type": "number", "example": 8499.15 },
+              "monthRevenue": { "type": "number", "example": 31997.60 },
+              "yearRevenue": { "type": "number", "example": 349975.00 },
+              "todayPrev": { "type": "number", "description": "Previous period sales for trend calculation" },
+              "weekPrev": { "type": "number" },
+              "monthPrev": { "type": "number" },
+              "yearPrev": { "type": "number" },
+              "effectivePrice": { "type": "number", "description": "salePrice if exists, else price", "example": 79.99 },
+              "quantitySold": { "type": "number", "description": "Sales for selected time period", "example": 85 },
+              "totalRevenue": { "type": "number", "description": "Revenue for selected time period", "example": 8499.15 },
+              "percentChange": { "type": "number", "description": "Percentage change vs previous period", "example": 12.5 },
+              "currentPeriod": { "type": "string", "description": "Which period was used", "example": "week" },
+              "rank": { "type": "number", "description": "Position in sorted list", "example": 1 }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Best sellers table/page with: rank number, product image, name, category badge, effective price, quantity sold, total revenue, trend arrow with percentage (green up/red down). Includes filter dropdowns for time period, category, and limit. May include charts/graphs for revenue trends."
+    }
+  ]
+}

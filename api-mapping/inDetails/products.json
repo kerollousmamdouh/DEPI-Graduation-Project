@@ -1,0 +1,176 @@
+{
+  "module": "Products",
+  "basePath": "/api/products",
+  "description": "Product catalog management - list, create, update products with pricing, offers, gallery, and stock",
+  "endpoints": [
+    {
+      "name": "Get All Products",
+      "method": "GET",
+      "path": "/api/products",
+      "auth": false,
+      "description": "Retrieve all products with computed prices and category info",
+      "frontendUsage": {
+        "usedBy": "productsService.js (Admin Dashboard), Storefront Product Listing",
+        "frontendDescription": "Displays product grid/table in admin and storefront. Each product includes calculated current_price and is_on_offer flag.",
+        "mockStatus": "USE_MOCK=true for admin - reads from localStorage key 'products'",
+        "mockData": "productsData seed file"
+      },
+      "request": {},
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": [
+            {
+              "id": { "type": "number", "example": 1 },
+              "category_id": { "type": "number", "example": 3 },
+              "slug": { "type": "string", "example": "wireless-headphones" },
+              "wholesale_price": { "type": "number", "example": 50.00 },
+              "price": { "type": "number", "example": 99.99 },
+              "discount_price": { "type": "number", "nullable": true, "example": 79.99 },
+              "comparison_price": { "type": "number", "nullable": true, "example": 129.99 },
+              "sku": { "type": "string", "example": "WH-001" },
+              "barcode": { "type": "string", "nullable": true, "example": "1234567890123" },
+              "product_image": { "type": "string", "example": "https://example.com/product.jpg" },
+              "avg_rating": { "type": "number", "example": 4.5 },
+              "is_active": { "type": "boolean", "example": true },
+              "created_at": { "type": "string", "format": "datetime" },
+              "offer_start_at": { "type": "string", "nullable": true },
+              "offer_end_at": { "type": "string", "nullable": true },
+              "offer_until_stock_out": { "type": "boolean", "nullable": true },
+              "offer_max_quantity": { "type": "number", "nullable": true },
+              "name": { "type": "string", "example": "Wireless Headphones" },
+              "brand": { "type": "string", "nullable": true, "example": "Sony" },
+              "description": { "type": "string", "nullable": true, "example": "High quality wireless headphones" },
+              "unit": { "type": "string", "example": "piece" },
+              "category_name": { "type": "string", "example": "Electronics" },
+              "current_price": { "type": "number", "description": "Computed: discount_price if active offer, else price", "example": 79.99 },
+              "is_on_offer": { "type": "boolean", "description": "Whether product has active offer", "example": true }
+            }
+          ]
+        }
+      },
+      "frontendDisplay": "Rendered as product cards (storefront) or table rows (admin) showing image, name, price with strikethrough if on offer, rating stars, category badge, stock status, and action buttons"
+    },
+    {
+      "name": "Get Product By ID",
+      "method": "GET",
+      "path": "/api/products/:id",
+      "auth": false,
+      "description": "Retrieve single product with full details and image gallery",
+      "frontendUsage": {
+        "usedBy": "Storefront Product Detail Page",
+        "frontendDescription": "Displays full product details page with image gallery, pricing, description, add-to-cart button, and related products"
+      },
+      "request": {
+        "params": {
+          "id": { "type": "number", "required": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": {
+            "id": { "type": "number" },
+            "name": { "type": "string" },
+            "description": { "type": "string" },
+            "price": { "type": "number" },
+            "discount_price": { "type": "number", "nullable": true },
+            "current_price": { "type": "number" },
+            "is_on_offer": { "type": "boolean" },
+            "gallery": { "type": "array", "items": { "type": "string", "description": "Image URLs" } },
+            "avg_rating": { "type": "number" },
+            "sku": { "type": "string" },
+            "brand": { "type": "string" },
+            "unit": { "type": "string" },
+            "category_name": { "type": "string" }
+          }
+        }
+      },
+      "frontendDisplay": "Full product detail page with image carousel, price display, description, quantity selector, add to cart button, favorite toggle, and breadcrumb navigation"
+    },
+    {
+      "name": "Create Product",
+      "method": "POST",
+      "path": "/api/products",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Create a new product with all details, pricing, and optional gallery images",
+      "frontendUsage": {
+        "usedBy": "productsService.js (Admin Dashboard)",
+        "frontendDescription": "Called when admin submits the Add Product form. Handles complex form with categories, pricing, offers, SKU, and image upload.",
+        "mockStatus": "USE_MOCK=true - adds to localStorage with auto-generated id"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "body": {
+          "category_id": { "type": "number", "required": true, "example": 3 },
+          "name_ar": { "type": "string", "required": true, "example": "سماعات لاسلكية" },
+          "name_en": { "type": "string", "required": false, "example": "Wireless Headphones" },
+          "slug": { "type": "string", "required": true, "example": "wireless-headphones" },
+          "brand_ar": { "type": "string", "required": false, "example": "سوني" },
+          "brand_en": { "type": "string", "required": false, "example": "Sony" },
+          "description_ar": { "type": "string", "required": false, "example": "سماعات عالية الجودة" },
+          "description_en": { "type": "string", "required": false, "example": "High quality headphones" },
+          "wholesale_price": { "type": "number", "required": true, "example": 50.00 },
+          "price": { "type": "number", "required": true, "example": 99.99 },
+          "comparison_price": { "type": "number", "required": false, "example": 129.99 },
+          "sku": { "type": "string", "required": true, "example": "WH-001" },
+          "barcode": { "type": "string", "required": false, "example": "1234567890123" },
+          "unit_ar": { "type": "string", "required": true, "example": "قطعة" },
+          "unit_en": { "type": "string", "required": false, "example": "piece" },
+          "product_image": { "type": "string", "required": true, "example": "https://example.com/product.jpg" },
+          "discount_price": { "type": "number", "required": false, "example": 79.99 },
+          "offer_start_at": { "type": "string", "required": false, "format": "datetime" },
+          "offer_end_at": { "type": "string", "required": false, "format": "datetime" },
+          "offer_until_stock_out": { "type": "boolean", "required": false },
+          "offer_max_quantity": { "type": "number", "required": false },
+          "gallery": { "type": "array", "items": { "type": "string" }, "required": false, "description": "Additional product image URLs" },
+          "is_active": { "type": "boolean", "required": false, "default": true }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 201,
+          "body": {
+            "message": { "type": "string", "example": "Product created successfully" },
+            "productId": { "type": "number", "example": 42 }
+          }
+        }
+      },
+      "frontendDisplay": "Shows success toast, refreshes product table, navigates to product list"
+    },
+    {
+      "name": "Update Product",
+      "method": "PUT",
+      "path": "/api/products/:id",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Update an existing product's details, pricing, or gallery",
+      "frontendUsage": {
+        "usedBy": "productsService.js (Admin Dashboard)",
+        "frontendDescription": "Called when admin saves edited product. Same form as create but pre-filled with existing data.",
+        "mockStatus": "USE_MOCK=true - updates in localStorage"
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "params": {
+          "id": { "type": "number", "required": true }
+        },
+        "body": {
+          "description": "Same fields as Create Product - all optional for partial updates"
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "message": "Product updated successfully" }
+        }
+      },
+      "frontendDisplay": "Shows success toast, updates product in table, closes edit dialog"
+    }
+  ]
+}

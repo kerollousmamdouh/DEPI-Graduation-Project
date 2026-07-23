@@ -1,0 +1,82 @@
+{
+  "module": "SEO",
+  "basePath": "/api/seo",
+  "description": "Search Engine Optimization metadata management - meta titles, descriptions, Open Graph tags for products and categories",
+  "endpoints": [
+    {
+      "name": "Get SEO Details",
+      "method": "GET",
+      "path": "/api/seo/:entity_type/:entity_id",
+      "auth": false,
+      "description": "Retrieve SEO metadata for a product or category",
+      "frontendUsage": {
+        "usedBy": "Storefront Product/Category Pages (server-side rendering)",
+        "frontendDescription": "Used to populate HTML meta tags (title, description, keywords, OG tags) for social sharing and search engine indexing"
+      },
+      "request": {
+        "params": {
+          "entity_type": { "type": "string", "required": true, "enum": ["product", "category"], "example": "product" },
+          "entity_id": { "type": "number", "required": true, "example": 5 }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": {
+            "id": { "type": "number", "example": 1 },
+            "entity_type": { "type": "string", "example": "product" },
+            "entity_id": { "type": "number", "example": 5 },
+            "meta_title": { "type": "string", "example": "Wireless Headphones - Dealora" },
+            "meta_description": { "type": "string", "example": "Shop wireless headphones at Dealora..." },
+            "meta_keywords": { "type": "string", "example": "headphones, wireless, audio" },
+            "og_title": { "type": "string", "example": "Wireless Headphones | Dealora Store" },
+            "og_description": { "type": "string", "example": "Best wireless headphones at amazing prices" },
+            "og_image": { "type": "string", "nullable": true, "example": "https://example.com/og.jpg" },
+            "created_at": { "type": "string", "format": "datetime" },
+            "updated_at": { "type": "string", "format": "datetime" }
+          }
+        }
+      },
+      "frontendDisplay": "Not directly displayed - used to set <title>, <meta> tags, and Open Graph tags in HTML <head> for browser tab title and social media previews"
+    },
+    {
+      "name": "Save SEO Details",
+      "method": "POST",
+      "path": "/api/seo",
+      "auth": true,
+      "roles": ["super_admin", "store_manager"],
+      "description": "Create or update SEO metadata for a product or category (upsert)",
+      "frontendUsage": {
+        "usedBy": "Admin SEO Settings Page",
+        "frontendDescription": "Called when admin saves SEO metadata for a product or category. Uses INSERT ON DUPLICATE KEY UPDATE (upsert behavior)."
+      },
+      "request": {
+        "headers": {
+          "Authorization": { "type": "string", "required": true }
+        },
+        "body": {
+          "entity_type": { "type": "string", "required": true, "enum": ["product", "category"] },
+          "entity_id": { "type": "number", "required": true },
+          "meta_title_ar": { "type": "string", "required": true, "example": "سماعات لاسلكية - ديلورا" },
+          "meta_title_en": { "type": "string", "required": false, "example": "Wireless Headphones - Dealora" },
+          "meta_description_ar": { "type": "string", "required": true, "example": "تسوق سماعات لاسلكية..." },
+          "meta_description_en": { "type": "string", "required": false },
+          "meta_keywords_ar": { "type": "string", "required": false },
+          "meta_keywords_en": { "type": "string", "required": false },
+          "og_title_ar": { "type": "string", "required": false },
+          "og_title_en": { "type": "string", "required": false },
+          "og_description_ar": { "type": "string", "required": false },
+          "og_description_en": { "type": "string", "required": false },
+          "og_image": { "type": "string", "required": false, "description": "Open Graph image URL for social sharing" }
+        }
+      },
+      "response": {
+        "success": {
+          "statusCode": 200,
+          "body": { "message": "SEO details saved successfully" }
+        }
+      },
+      "frontendDisplay": "Shows success toast, SEO preview may update in admin panel showing how the page will appear in Google/social media"
+    }
+  ]
+}
