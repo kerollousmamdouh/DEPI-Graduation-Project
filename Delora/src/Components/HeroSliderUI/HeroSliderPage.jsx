@@ -35,6 +35,14 @@ export default function HeroSlider({ lang = "ar" }) {
 
   // 🛡️ حماية لو البيانات لسه مش موجودة أو مفيش سلايدرز عشان الموقع ميكراشش
   if (!data || data.length === 0) {
+    const logo = adminData?.logo1;
+    if (logo) {
+      return (
+        <div className="w-full h-80 sm:h-100 md:h-120 bg-white rounded-3xl flex items-center justify-center border border-gray-100 shadow-[0_12px_40px_rgba(0,0,0,0.04)]">
+          <img src={logo} alt="Delora" className="max-h-24 sm:max-h-32 object-contain opacity-80" />
+        </div>
+      );
+    }
     return <div className="w-full h-80 sm:h-100 md:h-120 bg-gray-50 rounded-3xl animate-pulse" />;
   }
 

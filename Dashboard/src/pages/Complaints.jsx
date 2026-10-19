@@ -13,6 +13,8 @@ import {
   FileText,
   ArrowLeft,
   Edit2,
+  Trash2,
+  UserPlus,
 } from "lucide-react";
 
 const Complaints = () => {
@@ -23,6 +25,7 @@ const Complaints = () => {
     replyComplaint,
     changeStatus,
     deleteComplaint,
+    sendPromoMessage,
   } = useComplaints();
 
   const { lang } = useLanguage();
@@ -39,6 +42,12 @@ const Complaints = () => {
   const [reply, setReply] = useState("");
   const [editingMsgId, setEditingMsgId] = useState(null);
   const [editingMsgText, setEditingMsgText] = useState("");
+
+  const [showNewChat, setShowNewChat] = useState(false);
+  const [newChatEmail, setNewChatEmail] = useState("");
+  const [newChatName, setNewChatName] = useState("");
+  const [newChatMessage, setNewChatMessage] = useState("");
+  const [sendingNewChat, setSendingNewChat] = useState(false);
 
   const [attachedFile, setAttachedFile] = useState(null);
   const fileInputRef = useRef(null);
@@ -103,6 +112,17 @@ const Complaints = () => {
     save: isAr ? "حفظ" : "Save",
     back: isAr ? "رجوع" : "Back",
     noSearchResults: isAr ? "لا توجد نتائج" : "No results found",
+    deleteMsg: isAr ? "حذف" : "Delete",
+    deleteMsgConfirm: isAr ? "هل تريد حذف هذه الرسالة؟" : "Delete this message?",
+    newChat: isAr ? "محادثة جديدة" : "New Chat",
+    newChatTitle: isAr ? "بدء محادثة جديدة" : "Start New Conversation",
+    emailLabel: isAr ? "البريد الإلكتروني" : "Email",
+    nameLabel: isAr ? "اسم العميل" : "Customer Name",
+    messageLabel: isAr ? "الرسالة" : "Message",
+    send: isAr ? "إرسال" : "Send",
+    newChatSuccess: isAr ? "تم إرسال الرسالة بنجاح" : "Message sent successfully",
+    newChatError: isAr ? "فشل إرسال الرسالة" : "Failed to send message",
+    requiredField: isAr ? "هذا الحقل مطلوب" : "This field is required",
   };
 
   // Auto-select from URL params
@@ -266,6 +286,44 @@ const Complaints = () => {
     }
   };
 
+  const handleNewChat = async () => {
+    if (!newChatEmail.trim() || !newChatMessage.trim()) {
+      toast.error(t.requiredField);
+      return;
+    }
+    setSendingNewChat(true);
+    try {
+      await sendPromoMessage(
+        { email: newChatEmail.trim(), name: newChatName.trim() || "Customer" },
+        newChatMessage.trim()
+      );
+      toast.success(t.newChatSuccess);
+      setShowNewChat(false);
+      setNewChatEmail("");
+      setNewChatName("");
+      setNewChatMessage("");
+    } catch (err) {
+      toast.error(err.message || t.newChatError);
+    } finally {
+      setSendingNewChat(false);
+    }
+  };
+
+  const handleDeleteMessage = async (msgId) => {
+    const rawId = String(msgId).replace(/^CHAT-/, "");
+    try {
+      const { apiClient } = await import("../services/apiClient");
+      await apiClient.delete(`/complaints/messages/${rawId}`);
+      setSelectedComplaint((prev) => ({
+        ...prev,
+        messages: prev.messages.filter((m) => String(m.id) !== String(msgId)),
+      }));
+      toast.success(isAr ? "تم حذف الرسالة" : "Message deleted");
+    } catch (err) {
+      toast.error(isAr ? "فشل الحذف" : "Failed to delete message");
+    }
+  };
+
   const renderMessageContent = (msg) => {
     const isImage =
       msg.fileType?.startsWith("image/") ||
@@ -374,6 +432,14 @@ const Complaints = () => {
                 className="w-full rounded-xl border border-gray-200/80 bg-gray-50 ps-9 pe-3 py-2 text-xs font-medium outline-none focus:border-emerald-500 focus:bg-white transition-all"
               />
             </div>
+            {/* New Chat button */}
+            <button
+              onClick={() => setShowNewChat(true)}
+              className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-xl transition-all cursor-pointer"
+            >
+              <UserPlus size={14} />
+              {t.newChat}
+            </button>
             {/* Filter pills */}
             <div className="flex gap-1.5 mt-2 overflow-x-auto pb-0.5">
               {[
@@ -411,14 +477,19 @@ const Complaints = () => {
                 const clientName =
                   item.customerName || item.clientName || "Anonymous";
                 const clientEmail = item.email || item.clientEmail || "";
-                const lastMsg =
+                const lastMsgText =
                   item.messages?.[item.messages.length - 1]?.text || "";
                 const lastMsgSender =
                   item.messages?.[item.messages.length - 1]?.sender || "";
                 const isActive = selectedComplaint?.id === item.id;
                 const hasUnread =
                   item.hasNotification || item.unreadCount > 0;
-                const lastTime = item.messages?.[item.messages.length - 1]?.time || "";
+                const lastMsgFull = item.messages?.[item.messages.length - 1];
+                const lastTime = lastMsgFull?.createdAt
+                  ? new Date(lastMsgFull.createdAt).toLocaleDateString(isAr ? "ar-EG" : "en-US", { month: "short", day: "numeric" }) +
+                    " " +
+                    new Date(lastMsgFull.createdAt).toLocaleTimeString(isAr ? "ar-EG" : "en-US", { hour: "2-digit", minute: "2-digit" })
+                  : lastMsgFull?.time || "";
 
                 return (
                   <div
@@ -471,8 +542,8 @@ const Complaints = () => {
                           }`}
                         >
                           {lastMsgSender === "admin"
-                            ? `${isAr ? "أنت:" : "You:"} ${lastMsg}`
-                            : lastMsg}
+                            ? `${isAr ? "أنت:" : "You:"} ${lastMsgText}`
+                            : lastMsgText}
                         </p>
                         <div className="flex items-center gap-1.5 shrink-0">
                           <span
@@ -688,6 +759,18 @@ const Complaints = () => {
                                   <Edit2 size={9} />
                                   {t.edit}
                                 </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (confirm(isAr ? "هل تريد حذف هذه الرسالة؟" : "Delete this message?")) {
+                                      handleDeleteMessage(msgId);
+                                    }
+                                  }}
+                                  className="hover:text-red-600 flex items-center gap-0.5 transition-colors cursor-pointer"
+                                >
+                                  <Trash2 size={9} />
+                                  {isAr ? "حذف" : "Delete"}
+                                </button>
                               </div>
                             )}
                           </>
@@ -808,6 +891,90 @@ const Complaints = () => {
                 className="rounded-xl bg-orange-600 px-5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-orange-700 transition cursor-pointer"
               >
                 {t.closeTicket}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= New Chat Modal ================= */}
+      {showNewChat && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                  <UserPlus size={20} />
+                </div>
+                <h2 className="text-base font-black text-gray-900">
+                  {t.newChatTitle}
+                </h2>
+              </div>
+              <button
+                onClick={() => setShowNewChat(false)}
+                className="p-1.5 rounded-full hover:bg-gray-100 transition cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-600 mb-1">
+                  {t.emailLabel} *
+                </label>
+                <input
+                  type="email"
+                  value={newChatEmail}
+                  onChange={(e) => setNewChatEmail(e.target.value)}
+                  placeholder="customer@example.com"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs font-medium outline-none focus:border-emerald-500 focus:bg-white transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-600 mb-1">
+                  {t.nameLabel}
+                </label>
+                <input
+                  type="text"
+                  value={newChatName}
+                  onChange={(e) => setNewChatName(e.target.value)}
+                  placeholder={isAr ? "اسم العميل" : "Customer name"}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs font-medium outline-none focus:border-emerald-500 focus:bg-white transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-600 mb-1">
+                  {t.messageLabel} *
+                </label>
+                <textarea
+                  rows={3}
+                  value={newChatMessage}
+                  onChange={(e) => setNewChatMessage(e.target.value)}
+                  placeholder={isAr ? "اكتب رسالتك هنا..." : "Type your message here..."}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs font-medium outline-none focus:border-emerald-500 focus:bg-white transition-all resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-1">
+              <button
+                onClick={() => setShowNewChat(false)}
+                className="rounded-xl border border-gray-200 px-5 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
+              >
+                {t.cancel}
+              </button>
+              <button
+                onClick={handleNewChat}
+                disabled={sendingNewChat || !newChatEmail.trim() || !newChatMessage.trim()}
+                className="rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+              >
+                {sendingNewChat ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Send size={14} />
+                )}
+                {t.send}
               </button>
             </div>
           </div>

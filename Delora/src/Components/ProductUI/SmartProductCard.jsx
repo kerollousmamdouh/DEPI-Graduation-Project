@@ -12,7 +12,7 @@ function SmartProductCard({
   cartItems = [],
   lang = 'ar',
 }) {
-  const isWeightType = product?.unitType === "weight" || category?.type === "weight";
+  const isWeightType = product?.unitType === "weight";
    const isRtl = lang === 'ar';
   // 1. حساب الكليات المحجوزة في السلة (بالعدد أو الجرامات)
   const productName = lang === 'ar' 
@@ -364,6 +364,7 @@ function SmartProductCard({
                 value={quantity}
                 onFocus={(e) => e.target.select()}
                 onClick={(e) => e.target.select()}
+                onWheel={(e) => e.target.blur()}
                 onChange={(e) => {
                   const val = parseInt(e.target.value);
                   if (val > currentStock) {

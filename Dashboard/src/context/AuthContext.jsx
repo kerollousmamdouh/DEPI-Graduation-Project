@@ -10,106 +10,92 @@ import { buildPermissionId } from "../data/permissionsData";
 
 const AuthContext = createContext();
 
-// ==========================================
-// Provider
-// ==========================================
-
-export const AuthProvider = ({
-  children,
-}) => {
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(() => localStorage.getItem("dash_token") || null);
+  const [loading, setLoading] = useState(true);
 
-  const [loading, setLoading] =
-    useState(true);
+  // Sync token to Authorization header
+  useEffect(() => {
+    if (token) {
+      apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    } else {
+      delete apiClient.defaults.headers.common["Authorization"];
+    }
+  }, [token]);
 
-  // ==========================================
   // Restore Session
-  // ==========================================
-
   useEffect(() => {
     const restoreSession = async () => {
-      const stored =
-        localStorage.getItem(
-          "currentUser"
-        );
-
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          if (parsed.token) {
-            const profile = await apiClient.get("/auth/profile");
-            const restoredUser = { ...parsed, ...profile, token: parsed.token };
-            localStorage.setItem("currentUser", JSON.stringify(restoredUser));
-            setUser(restoredUser);
-          } else {
-            setUser(parsed);
-          }
-        } catch {
-          localStorage.removeItem("currentUser");
-          setUser(null);
-        }
+      if (!token) {
+        setLoading(false);
+        return;
       }
-
+      try {
+        const profile = await apiClient.get("/auth/dashboard/profile");
+        setUser(profile);
+      } catch {
+        setToken(null);
+        localStorage.removeItem("dash_token");
+        setUser(null);
+      }
       setLoading(false);
     };
-
     restoreSession();
-  }, []);
+  }, [token]);
 
-  // ==========================================
   // Login
-  // ==========================================
-
   const login = async (identifier, password) => {
-    const username = identifier.trim();
-
-    const data = await apiClient.post("/auth/login", {
-      username,
+    const data = await apiClient.post("/auth/dashboard/login", {
+      email: identifier.trim(),
       password,
     });
 
-    if (!data.token) {
-      throw new Error(data.message || "Invalid username or password.");
+    if (!data.user) {
+      throw new Error(data.message || "Invalid email or password.");
     }
 
-    const adminRoles = ["super_admin", "store_manager"];
-    if (!adminRoles.includes(data.user.role)) {
-      throw new Error("Access denied. Admin privileges required.");
+    if (data.token) {
+      localStorage.setItem("dash_token", data.token);
+      setToken(data.token);
     }
-
-    const userWithToken = { ...data.user, token: data.token };
-
-    localStorage.setItem("currentUser", JSON.stringify(userWithToken));
-    setUser(userWithToken);
-    return userWithToken;
+    setUser(data.user);
+    return data.user;
   };
 
-  const logout = () => {
+  // Logout
+  const logout = async () => {
+    try {
+      await apiClient.post("/auth/dashboard/logout");
+    } catch {
+      // Even if the call fails, clear local state
+    }
+    localStorage.removeItem("dash_token");
     localStorage.removeItem("currentUser");
+    delete apiClient.defaults.headers.common["Authorization"];
+    setToken(null);
     setUser(null);
   };
 
+  // Permissions
   const isOwner = user?.role === "super_admin";
-  const isAdmin = user?.role === "store_manager" || user?.role === "super_admin";
+  const isAdmin = user?.role === "team_member" || user?.role === "super_admin";
 
   const hasPermission = (permission) => {
     if (!user) return false;
-    if (user.role === "super_admin") return true;
-    if (user.role === "store_manager") return true;
+    if (isOwner) return true;
     return user.permissions?.includes(permission) ?? false;
   };
 
-  // ==========================================
-  // Fine-grained action permission check
-  // ==========================================
   const can = (resourceId, action = "view") => {
     if (!user) return false;
     if (isOwner) return true;
-    if (isAdmin) return true;
     if (user.permissions?.includes("*")) return true;
 
     const scopedId = buildPermissionId(resourceId, action);
     if (user.permissions?.includes(scopedId)) return true;
+
+    if (user.permissions?.includes(resourceId)) return true;
 
     return false;
   };
@@ -133,9 +119,4 @@ export const AuthProvider = ({
   );
 };
 
-// ==========================================
-// Hook
-// ==========================================
-
-export const useAuth = () =>
-  useContext(AuthContext);
+export const useAuth = () => useContext(AuthContext);

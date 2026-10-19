@@ -32,6 +32,10 @@ export default function TeamPermissions() {
 
   const [permissions, setPermissions] = useState(admin?.permissions || []);
 
+  // Nobody but the owner can view or change the owner's own permissions —
+  // guards against a non-owner reaching this page via a direct URL.
+  const blockedFromOwnerRecord = admin?.jobTitle === "Owner" && !isOwner;
+
   if (!admin) {
     return (
       <div className="p-8 text-center">
@@ -42,6 +46,7 @@ export default function TeamPermissions() {
   }
 
   const togglePermission = (permissionId) => {
+    if (blockedFromOwnerRecord) return;
     setPermissions((prev) =>
       prev.includes(permissionId)
         ? prev.filter((p) => p !== permissionId)
@@ -50,6 +55,7 @@ export default function TeamPermissions() {
   };
 
   const toggleView = (resourceId) => {
+    if (blockedFromOwnerRecord) return;
     setPermissions((prev) => {
       const isEnabled = prev.includes(resourceId);
       if (isEnabled) {
@@ -62,6 +68,7 @@ export default function TeamPermissions() {
   };
 
   const handleSave = () => {
+    if (blockedFromOwnerRecord) return;
     updateMember(Number(id), { ...admin, permissions });
     toast.success("Permissions updated successfully.");
     navigate("/team");
@@ -77,7 +84,8 @@ export default function TeamPermissions() {
         </div>
       </div>
 
-      <div className="rounded-3xl bg-white p-8 shadow border border-gray-100 space-y-4">
+      <div className="relative">
+      <div className={`rounded-3xl bg-white p-8 shadow border border-gray-100 space-y-4 ${blockedFromOwnerRecord ? "blur-sm select-none pointer-events-none" : ""}`}>
         <div className="mb-2 flex items-center gap-2">
           <ShieldCheck size={22} className="text-[rgb(0,166,62)]" />
           <h2 className="text-xl font-bold">Dashboard Permissions</h2>
@@ -159,6 +167,16 @@ export default function TeamPermissions() {
           </div>
           <button onClick={handleSave} className="rounded-xl bg-[rgb(0,166,62)] px-8 py-3 font-semibold text-white">Save Permissions</button>
         </div>
+      </div>
+
+      {blockedFromOwnerRecord && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-3xl bg-white/40">
+          <div className="flex items-center gap-2 rounded-full bg-white border border-gray-200 shadow-sm px-4 py-2">
+            <Lock size={14} className="text-gray-500" />
+            <span className="text-sm font-semibold text-gray-600">Owner information is restricted</span>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );

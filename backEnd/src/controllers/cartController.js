@@ -117,8 +117,7 @@ export const getCart = async (req, res) => {
                 IFNULL(p.name_${lang}, p.name_ar) AS name,
                 IFNULL(p.unit_${lang}, p.unit_ar) AS unit,
                 CASE 
-                    WHEN p.discount_price IS NOT NULL 
-                         AND (p.offer_until_stock_out = TRUE OR (p.offer_start_at <= NOW() AND p.offer_end_at >= NOW()))
+                    WHEN p.discount_price IS NOT NULL AND p.offer_end_at >= NOW()
                     THEN p.discount_price 
                     ELSE p.price 
                 END AS price

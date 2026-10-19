@@ -5,7 +5,7 @@ import { protect, authorizeRoles } from '../middlewares/authMiddleware.js';
 const router = express.Router();
 
 router.use(protect);
-router.use(authorizeRoles('super_admin', 'store_manager'));
+router.use(authorizeRoles('super_admin', 'store_manager', 'team_member'));
 
 router.get('/', getAllDeals);
 router.post('/', createDeal);

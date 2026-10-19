@@ -30,5 +30,6 @@ INSERT INTO store_settings (key_name, key_value_ar, key_value_en, display_name_a
 ('footer_working_hours_en', '9 AM - 12 AM Daily', NULL, 'ساعات العمل بالإنجليزي', 'Footer Working Hours EN'),
 ('footer_phones', '["01012345678","01187654321"]', NULL, 'هواتف الفوتر', 'Footer Phones'),
 ('footer_locations', '[{"name":"فرع مدينة نصر","nameEn":"Nasr City Branch","url":"https://maps.google.com/?q=Nasr+City"},{"name":"فرع التجمع","nameEn":"Tagamoa Branch","url":"https://maps.google.com/?q=Tagamoa"}]', NULL, 'مواقع الفروع', 'Footer Locations'),
-('footer_social_links', '[{"name":"Facebook","url":"https://fb.com/delora","icon":"facebook"},{"name":"Instagram","url":"https://instagram.com/delora","icon":"instagram"},{"name":"WhatsApp","url":"https://wa.me/201001105352","icon":"whatsapp"},{"name":"Telegram","url":"https://t.me/delora","icon":"telegram"}]', NULL, 'روابط التواصل الاجتماعي', 'Footer Social Links')
+('footer_social_links', '[{"name":"Facebook","url":"https://fb.com/delora","icon":"facebook"},{"name":"Instagram","url":"https://instagram.com/delora","icon":"instagram"},{"name":"WhatsApp","url":"https://wa.me/201001105352","icon":"whatsapp"},{"name":"Telegram","url":"https://t.me/delora","icon":"telegram"}]', NULL, 'روابط التواصل الاجتماعي', 'Footer Social Links'),
+('isMultiLanguage', 'false', NULL, 'ترجمة الصفحة الرئيسية', 'Homepage Language Toggle')
 ON DUPLICATE KEY UPDATE key_value_ar=VALUES(key_value_ar), key_value_en=VALUES(key_value_en);

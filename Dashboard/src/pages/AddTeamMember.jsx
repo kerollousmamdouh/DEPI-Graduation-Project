@@ -1,15 +1,25 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Upload, User, Eye, EyeOff, BriefcaseBusiness, Mail, Phone, DollarSign, UserCircle, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Upload, User, Eye, EyeOff, BriefcaseBusiness, Mail, Phone, DollarSign, UserCircle, ShieldCheck, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { useTeam } from "../Hooks/useTeam";
+import { useAuth } from "../context/AuthContext";
+import { teamService } from "../services/teamService";
+import PasswordConfirmModal from "../components/PasswordConfirmModal";
 
 const AVAILABLE_PAGES = [
   { id: "dashboard", label: "Dashboard (لوحة التحكم)" },
   { id: "products", label: "Products (المنتجات)" },
+  { id: "bestSellers", label: "BestSellers (افضل المنتجات)"},
   { id: "orders", label: "Orders (الطلبات)" },
   { id: "users", label: "Users (المستخدمين)" },
+  { id: "team", label:"Team (الفريق)"},
   { id: "categories", label: "Categories (الأقسام)" },
+  { id: "heroSlider", label: "HeroSlider (شاشة العرض)"},
+  { id: "footer", label:"Footer Setting (بيانات الموقع)"},
+  { id: "paymentMethods", label: "Payment Methods (طرق الدفع )"},
+  { id: "deals", label: "Deals (الشركات)"},
+  { id: "announcement", label:"Announcements (الاعلانات)"},
   { id: "complaints", label: "Complaints (الشكاوى)" },
   { id: "settings", label : "Settings(الاعدادات)"}
 ];
@@ -21,12 +31,22 @@ export default function AddTeamMember() {
   const fileInputRef = useRef(null);
 
   const { members, addMember, updateMember } = useTeam();
+  const { isOwner } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+
+  // Confirmation-gate state: non-owners must supply the owner's password
+  // before an add/edit actually goes through.
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingSubmitData, setPendingSubmitData] = useState(null);
 
   const [formData, setFormData] = useState({
     name: "", email: "", phone: "", salary: "", address: "", password: "",
     status: "Active", permissions: [], jobTitle: "", avatar: "",
   });
+
+  const targetAdmin = isEdit ? members.find((a) => String(a.id) === id) : null;
+  // Nobody but the owner can view/edit the owner's own record from this form.
+  const blockedFromOwnerRecord = isEdit && targetAdmin?.jobTitle === "Owner" && !isOwner;
 
   useEffect(() => {
     if (!isEdit || !members.length) return;
@@ -38,7 +58,9 @@ export default function AddTeamMember() {
         phone: admin.phone || "",
         salary: admin.salary || "",
         address: admin.address || "",
-        password: admin.password || "", // <-- الأونر هيشوف الباسورد الحالي للعامل هنا
+        password: "", // Passwords are hashed server-side and never sent back.
+                       // Leaving this blank keeps the current password; typing
+                       // here sets a brand-new one (a reset, not a reveal).
         status: admin.status || "Active",
         permissions: admin.permissions || [],
         jobTitle: admin.jobTitle || "",
@@ -67,6 +89,8 @@ export default function AddTeamMember() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (blockedFromOwnerRecord) return;
     
     // Validation
     if (!formData.name.trim()) return toast.error("Full Name is required");
@@ -77,21 +101,30 @@ export default function AddTeamMember() {
       return toast.error("Phone number must be 11 digits and start with 0");
     }
 
-    // هيبعت البيانات بالباسورد اللي مكتوب في الخانة (القديم أو المتعدل)
     const submitData = {
       fullName: formData.name,
       email: formData.email,
       phone: formData.phone,
       salary: formData.salary,
-      address: formData.address,
-      password: formData.password,
-      status: formData.status,
-      role: "admin",
+      // Only send a password if one was typed — blank means "keep the current one".
+      ...(formData.password ? { password: formData.password } : {}),
+      is_active: formData.status === "Active",
       permissions: formData.permissions,
       jobTitle: formData.jobTitle,
       avatar: formData.avatar,
     };
 
+    // The owner can save directly. Any other team member with access to this
+    // page must confirm with the owner's password first.
+    if (isOwner) {
+      await persistMember(submitData);
+    } else {
+      setPendingSubmitData(submitData);
+      setConfirmOpen(true);
+    }
+  };
+
+  const persistMember = async (submitData) => {
     try {
       if (isEdit) {
         await updateMember({ id: Number(id), data: submitData });
@@ -106,6 +139,16 @@ export default function AddTeamMember() {
     }
   };
 
+  const handleConfirmOwnerPassword = async (password) => {
+    const result = await teamService.verifyOwnerPassword(password);
+    if (!result?.valid) {
+      throw new Error("Incorrect password. Please try again.");
+    }
+    setConfirmOpen(false);
+    await persistMember(pendingSubmitData);
+    setPendingSubmitData(null);
+  };
+
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-10 px-6">
       <div className="flex items-center gap-4">
@@ -117,7 +160,8 @@ export default function AddTeamMember() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <div className="relative">
+      <form onSubmit={handleSubmit} className={`space-y-8 ${blockedFromOwnerRecord ? "blur-sm select-none pointer-events-none" : ""}`}>
         
         {/* Profile Image */}
         <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-6">
@@ -140,13 +184,18 @@ export default function AddTeamMember() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div><label className="block text-sm font-medium text-gray-600 mb-2">Full Name</label><input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100 focus:ring-2 focus:ring-green-500 transition-all outline-none" /></div>
             
-            {/* Password Field */}
+            {/* Password Field — this is a RESET, not a reveal. Passwords are
+                bcrypt-hashed server-side and can never be shown again to
+                anyone, including the owner. Leave blank to keep it unchanged. */}
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-2">Password</label>
+              <label className="block text-sm font-medium text-gray-600 mb-2">
+                {isEdit ? (
+                  <>Reset Password <span className="text-gray-400 font-normal">(leave blank to keep current)</span></>
+                ) : "Password"}
+              </label>
               <div className="relative">
                 <input 
                   type={showPassword ? "text" : "password"} 
-                  name="employee-secret-key" // <-- الخدعة اللي هتمنع المتصفح من حفظ الباسورد للأونر
                   autoComplete="new-password"
                   value={formData.password} 
                   onChange={(e) => setFormData({...formData, password: e.target.value})} 
@@ -224,7 +273,34 @@ export default function AddTeamMember() {
             {isEdit ? "Update Changes" : "Create New Member"}
           </button>
         </div>
+
+        {!isOwner && (
+          <p className="text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-2xl px-5 py-4 text-center">
+            You'll be asked for the administrator's password to confirm this {isEdit ? "update" : "new member"}.
+          </p>
+        )}
       </form>
+
+      {blockedFromOwnerRecord && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-3xl bg-white/40">
+          <div className="flex items-center gap-2 rounded-full bg-white border border-gray-200 shadow-sm px-4 py-2">
+            <Lock size={14} className="text-gray-500" />
+            <span className="text-sm font-semibold text-gray-600">Owner information is restricted</span>
+          </div>
+        </div>
+      )}
+      </div>
+
+      <PasswordConfirmModal
+        open={confirmOpen}
+        title={isEdit ? "Confirm member update" : "Confirm new member"}
+        description="Enter the administrator's password to confirm this change to the team."
+        onConfirm={handleConfirmOwnerPassword}
+        onClose={() => {
+          setConfirmOpen(false);
+          setPendingSubmitData(null);
+        }}
+      />
     </div>
   );
 }

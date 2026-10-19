@@ -40,8 +40,40 @@ export const SiteProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, [announcement]);
 
-  // 🔔 دالة النشر (من الأدمن فقط عبر Dashboard)
-  const publishAnnouncement = async () => {};
+  // 🔔 دالة النشر — force-refresh the current announcement from backend
+  const publishAnnouncement = async () => {
+    try {
+      const res = await apiClient.get("/announcements/current");
+      if (res && res.id) {
+        const expiresAt = new Date(res.expires_at).getTime();
+        if (Date.now() < expiresAt) {
+          const announcementText = lang === "en"
+            ? (res.message_en || res.message_ar || res.message || "")
+            : (res.message_ar || res.message_en || res.message || "");
+          setAnnouncement({
+            id: `ANN-BACKEND-${res.id}`,
+            text: announcementText,
+            textAr: res.message_ar || "",
+            textEn: res.message_en || res.message_ar || "",
+            titleAr: res.title_ar || "تنويه هام",
+            titleEn: res.title_en || "IMPORTANT NOTICE",
+            createdAt: new Date(res.start_at).getTime(),
+            expiresAt,
+            totalDurationMs: expiresAt - new Date(res.start_at).getTime(),
+            bgColor: res.bg_color || "#064e3b",
+            textColor: res.text_color || "#f0fdf4",
+            titleColor: res.title_color || "#34d399",
+          });
+        } else {
+          setAnnouncement(null);
+        }
+      } else {
+        setAnnouncement(null);
+      }
+    } catch {
+      // silent — polling will pick it up
+    }
+  };
 
   // 🔔 دالة الحذف
   const clearAnnouncement = async () => {
@@ -90,17 +122,27 @@ export const SiteProvider = ({ children }) => {
           const fetchedFooter = footerRes.status === "fulfilled" ? footerRes.value : null;
           const fetchedPayments = paymentsRes.status === "fulfilled" ? paymentsRes.value : [];
 
-          // بناء بيانات المنتجات بالشكل المتوقع من الـ Frontend
+          // Determine isMultiLanguage from backend store_settings
+          let isMultiLang = false;
+          if (fetchedSettings && typeof fetchedSettings === "object") {
+            const mlSetting = fetchedSettings.isMultiLanguage;
+            if (mlSetting) {
+              const val = mlSetting.value || mlSetting;
+              isMultiLang = String(val).toLowerCase() === "true" || val === "1";
+            }
+          }
+
           const normalizedProducts = fetchedProducts.map((p) => ({
             id: p.id,
             categoryId: p.category_id,
             name: { ar: p.name_ar || p.name, en: p.name_en || p.name_ar || p.name },
             brand: { ar: p.brand_ar || p.brand, en: p.brand_en || p.brand_ar || p.brand },
             description: { ar: p.description_ar || p.description, en: p.description_en || p.description_ar || p.description },
-            price: Number(p.current_price || p.price),
+            price: Number(p.price),
             oldPrice: p.comparison_price ? Number(p.comparison_price) : null,
-            offerPrice: p.offerPrice ? Number(p.offerPrice) : null,
+            offerPrice: p.is_on_offer ? Number(p.offerPrice || p.discount_price) : null,
             isOnOffer: !!p.is_on_offer,
+            currentPrice: Number(p.current_price || p.price),
             stock: p.available_quantity || p.stock || 0,
             image: p.product_image || p.image,
             slug: p.slug,
@@ -108,7 +150,13 @@ export const SiteProvider = ({ children }) => {
             unit: p.unit || "قطعة",
             unitType: p.unitType || p.unit_type || "quantity",
             avgRating: p.avg_rating || 0,
-            offerStock: p.offer_max_quantity || null,
+            // ⚠️ Must read the LIVE remaining offer stock (offer_stock_remaining), not the
+            // original limit (offer_max_quantity). The remaining figure already reflects every
+            // completed order, while the max figure never changes — reading it here would make
+            // "while supplies last" offers look permanently full no matter how much was sold.
+            offerStock: p.offer_stock_remaining ?? null,
+            offerMaxStock: p.offer_max_quantity || null,
+            offerUntilStockOut: !!p.offer_until_stock_out,
             offerExpiresAt: p.offer_end_at || null,
           }));
 
@@ -158,6 +206,7 @@ export const SiteProvider = ({ children }) => {
           setAdminData({
             ...initialAdminData,
             ...footerFromBackend,
+            isMultiLanguage: isMultiLang,
             categories: normalizedCategories,
             products: normalizedProducts,
             HeroSliderData: normalizedBanners.length > 0 ? normalizedBanners : initialAdminData.HeroSliderData,
@@ -260,17 +309,30 @@ export const SiteProvider = ({ children }) => {
       try {
         const res = await apiClient.get("/orders/my-orders");
         if (Array.isArray(res) && res.length > 0) {
-          const normalizedOrders = res.map((o) => ({
-            id: `ORDER-${o.id}`,
-            items: (o.items || []).map(item => ({
+          const normalizeOrderItem = (item) => {
+            const unitType = item.unitType || "quantity";
+            const rawQty = Number(item.quantity) || 0;
+            const pricePerUnit = Number(item.pricePerUnit) || 0;
+            const isWeight = unitType === "weight";
+            const computedPrice = item.totalPrice
+              ? Number(item.totalPrice)
+              : (isWeight ? pricePerUnit * (rawQty / 1000) : pricePerUnit * rawQty);
+            return {
               ...item,
               title: item.nameAr || item.nameEn || "",
               name: { ar: item.nameAr || "", en: item.nameEn || "" },
               image: item.image || "",
-              price: item.totalPrice || 0,
-              currentPrice: item.pricePerUnit || 0,
-              quantity: item.quantity || 0,
-            })),
+              price: computedPrice,
+              currentPrice: pricePerUnit,
+              quantity: rawQty,
+              unitType: unitType,
+              unit: item.unit || "قطعة",
+            };
+          };
+
+          const normalizedOrders = res.map((o) => ({
+            id: `ORDER-${o.id}`,
+            items: (o.items || []).map(normalizeOrderItem),
             totalPrice: Number(o.totalPrice) || 0,
             customerDetails: {
               name: o.customerPhone || "",
@@ -348,7 +410,8 @@ export const SiteProvider = ({ children }) => {
           photo_url: formData.image || null,
         });
       } catch {}
-      const updatedUser = { ...currentUser, ...formData };
+      // Update state immediately — no page refresh needed
+      const updatedUser = { ...currentUser, ...formData, fullName: formData.fullName || currentUser?.fullName };
       setCurrentUser(updatedUser);
       localStorage.setItem("dealora_market_current_user", JSON.stringify(updatedUser));
       return { success: true, message: "تم حفظ بيانات الحساب بنجاح" };
@@ -422,26 +485,45 @@ export const SiteProvider = ({ children }) => {
 
   const createOrder = async (orderPayload) => {
     try {
-      // First, sync the frontend cart items to the backend cart_items table
-      if (orderPayload.items && Array.isArray(orderPayload.items) && orderPayload.items.length > 0) {
-        // Clear existing backend cart first
-        try {
-          await apiClient.delete("/cart/clear");
-        } catch {}
-        
-        // Add each frontend cart item to the backend
-        for (const item of orderPayload.items) {
+      let hasSplitPrices = false;
+      const rawItems = orderPayload.items || [];
+
+      if (rawItems.length > 0) {
+        const seen = {};
+        for (const item of rawItems) {
+          const pid = item.id || item.productId;
+          const price = item.price || 0;
+          if (seen[pid] !== undefined && seen[pid] !== price) {
+            hasSplitPrices = true;
+            break;
+          }
+          seen[pid] = price;
+        }
+
+        if (!hasSplitPrices) {
           try {
+            await apiClient.delete("/cart/clear");
+          } catch {}
+          
+          const merged = {};
+          for (const item of rawItems) {
             const productId = item.id || item.productId;
-            const quantity = item.isWeightType ? (item.weightGrams || 1000) : (item.quantity || 1);
-            await apiClient.post("/cart/add", { product_id: productId, quantity });
-          } catch (addErr) {
-            console.warn("Failed to sync cart item to backend:", addErr.message);
+            if (!merged[productId]) merged[productId] = 0;
+            const isWeight = item.unitType === "weight";
+            merged[productId] += isWeight ? (item.weightGrams || 0) : (item.quantity || 1);
+          }
+          for (const [productId, quantity] of Object.entries(merged)) {
+            if (quantity <= 0) continue;
+            try {
+              await apiClient.post("/cart/add", { product_id: Number(productId), quantity });
+            } catch (addErr) {
+              console.warn("Failed to sync cart item to backend:", addErr.message);
+            }
           }
         }
       }
 
-      const res = await apiClient.post("/orders/checkout", {
+      const checkoutPayload = {
         address_id: orderPayload.address_id || null,
         manual_address: orderPayload.shippingAddress || orderPayload.customer?.address || "",
         phone_number: orderPayload.customer?.phone || "",
@@ -449,14 +531,43 @@ export const SiteProvider = ({ children }) => {
         payment_method: orderPayload.paymentMethod || "cash_on_delivery",
         payment_transaction_id: orderPayload.transactionId || null,
         payment_receipt_url: orderPayload.receiptImage || null,
-      });
+      };
+
+      if (hasSplitPrices) {
+        checkoutPayload.items = rawItems.map(item => ({
+          product_id: Number(item.id || item.productId),
+          quantity: item.unitType === "weight" ? (item.weightGrams || 0) : (item.quantity || 1),
+        }));
+      }
+
+      const res = await apiClient.post("/orders/checkout", checkoutPayload);
       if (res && res.orderId) {
         try {
           const ordersRes = await apiClient.get("/orders/my-orders");
           if (Array.isArray(ordersRes)) {
+            const normalizeOrderItem = (item) => {
+              const unitType = item.unitType || "quantity";
+              const rawQty = Number(item.quantity) || 0;
+              const pricePerUnit = Number(item.pricePerUnit) || 0;
+              const isWeight = unitType === "weight";
+              const computedPrice = item.totalPrice
+                ? Number(item.totalPrice)
+                : (isWeight ? pricePerUnit * (rawQty / 1000) : pricePerUnit * rawQty);
+              return {
+                ...item,
+                title: item.nameAr || item.nameEn || "",
+                name: { ar: item.nameAr || "", en: item.nameEn || "" },
+                image: item.image || "",
+                price: computedPrice,
+                currentPrice: pricePerUnit,
+                quantity: rawQty,
+                unitType: unitType,
+                unit: item.unit || "قطعة",
+              };
+            };
             const normalizedOrders = ordersRes.map((o) => ({
               id: `ORDER-${o.id}`,
-              items: o.items || [],
+              items: (o.items || []).map(normalizeOrderItem),
               totalPrice: o.totalPrice || Number(o.total_amount),
               customerDetails: {},
               paymentMethod: o.paymentMethod || o.payment_method,

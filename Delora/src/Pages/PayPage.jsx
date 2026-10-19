@@ -1,7 +1,7 @@
 import { useContext, useState } from "react";
 import { SiteContext } from "../Store/SiteContext";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle, AlertTriangle, UploadCloud, Copy, Phone, MapPin, User, FileText, CreditCard } from "lucide-react";
+import { AlertTriangle, UploadCloud, Copy, Phone, MapPin, User, FileText, CreditCard } from "lucide-react";
 
 const CheckoutPage = ({ cartItems = [], onCheckout }) => {
   const { adminData, currentUser, paymentMethods } = useContext(SiteContext);
@@ -18,9 +18,9 @@ const CheckoutPage = ({ cartItems = [], onCheckout }) => {
     image: null
   });
 
-  const [orderPlaced, setOrderPlaced] = useState(false);
   const [error, setError] = useState("");
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const activePaymentMethods = Array.isArray(paymentMethods) && paymentMethods.length > 0
     ? paymentMethods
@@ -34,9 +34,11 @@ const CheckoutPage = ({ cartItems = [], onCheckout }) => {
 
   const isDigitalMethod = selectedMethod && selectedMethod.type === "offline" && selectedMethod.receiverNumber;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    if (isSubmitting) return;
+
     if (cartItems.length === 0) {
       setError("سلتك فارغة حالياً! يرجى إضافة منتجات أولاً.");
       return;
@@ -89,11 +91,23 @@ const CheckoutPage = ({ cartItems = [], onCheckout }) => {
       createdAt: new Date().toISOString()
     };
 
-    if (onCheckout) {
-      onCheckout(orderPayload);
+    setIsSubmitting(true);
+
+    try {
+      const result = onCheckout ? await onCheckout(orderPayload) : { success: true };
+
+      if (result && result.success === false) {
+        setError(result.message || "حدث خطأ أثناء إتمام الطلب، يرجى المحاولة مرة أخرى");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // تم تأكيد الطلب فعلياً في السيرفر - نغادر صفحة الدفع فوراً
+      navigate("/profile");
+    } catch (err) {
+      setError(err?.message || "حدث خطأ أثناء إتمام الطلب، يرجى المحاولة مرة أخرى");
+      setIsSubmitting(false);
     }
-    
-    setOrderPlaced(true);
   };
 
   const copyToClipboard = (text) => {
@@ -101,33 +115,6 @@ const CheckoutPage = ({ cartItems = [], onCheckout }) => {
     setCopyFeedback(true);
     setTimeout(() => setCopyFeedback(false), 2000);
   };
-
-  // واجهة النجاح المباشرة والمبسطة بدون أي روابط خارجية
-  if (orderPlaced) return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4">
-      <div className="bg-[#111] p-8 rounded-4xl text-center border border-green-500/20 max-w-sm w-full shadow-2xl">
-        <CheckCircle className="w-20 h-20 text-green-500 mx-auto mb-6 animate-bounce" />
-        <h2 className="text-2xl font-bold text-white mb-2">تم تسجيل طلبك بنجاح!</h2>
-        <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-          تلقينا طلبك وجاري مراجعته الآن وتأكيده داخل لوحة التحكم الخاصة بنا. يمكنك متابعة حالة طلبك من خلال حسابك الشخصي.
-        </p>
-        
-        <button 
-          onClick={() => navigate("/profile")} 
-          className="w-full bg-green-600 py-4 rounded-2xl text-white font-bold hover:bg-green-500 transition-all shadow-lg shadow-green-500/10"
-        >
-          الذهاب لطلباتي 📋
-        </button>
-
-        <button 
-          onClick={() => navigate("/home")} 
-          className="w-full py-3 mt-2 rounded-2xl text-slate-500 text-xs hover:text-slate-400 transition-all"
-        >
-          العودة للرئيسية 🏠
-        </button>
-      </div>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-[#050505] py-10 px-4 flex justify-center">
@@ -273,8 +260,12 @@ const CheckoutPage = ({ cartItems = [], onCheckout }) => {
           </div>
         )}
         
-        <button type="submit" className="w-full bg-white text-black py-4 rounded-2xl font-black text-lg hover:bg-green-500 hover:text-white transition-all transform hover:scale-[1.02]">
-          تأكيد وإرسال الطلب 🚀
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full bg-white text-black py-4 rounded-2xl font-black text-lg hover:bg-green-500 hover:text-white transition-all transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+        >
+          {isSubmitting ? "جاري إرسال الطلب..." : "تأكيد وإرسال الطلب 🚀"}
         </button>
       </form>
     </div>

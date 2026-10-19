@@ -1,10 +1,10 @@
 import { useMemo, useEffect, useRef, useContext, useState } from "react";
 import { SiteContext } from "../Store/SiteContext";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import CategoriesSection from "../Components/CategoryUI/CategorySection";
 import ProductCard from "../Components/ProductUI/SmartProductCard";
 import HeroSlider from "../Components/HeroSliderUI/HeroSliderPage";
-import { Flame, CheckCircle } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 
 function HomePage({
   lang = "ar",
@@ -38,11 +38,6 @@ function HomePage({
   const products = useMemo(
     () => adminData?.products || [],
     [adminData?.products],
-  );
-
-  const onSaleProducts = useMemo(
-    () => products.filter((p) => p.offerPrice && p.offerPrice > 0 && p.offerPrice < p.price).slice(0, 12),
-    [products],
   );
 
   const randomizedProducts = useMemo(() => {
@@ -97,58 +92,6 @@ function HomePage({
       </div>
 
       <CategoriesSection lang={lang} />
-
-      {onSaleProducts.length > 0 && (
-        <section className="container mx-auto px-2 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Flame className="text-red-500" size={22} />
-              <h2 className="text-xl font-bold text-gray-800">
-                {isArabic ? "عروض وخصومات" : "Deals & Offers"}
-              </h2>
-            </div>
-            <Link
-              to="/offers"
-              className="text-sm font-bold text-green-600 hover:text-green-700 transition-colors"
-            >
-              {isArabic ? "عرض الكل" : "View All"} →
-            </Link>
-          </div>
-
-          <div className="overflow-x-auto pb-2 -mx-2 px-2">
-            <div className="flex gap-2 sm:gap-3" style={{ minWidth: "min-content" }}>
-              {onSaleProducts.map((product) => {
-                const productCategory = categories.find(
-                  (cat) => cat.id === product.categoryId,
-                );
-                const discount = product.price > 0
-                  ? Math.round(((product.price - product.offerPrice) / product.price) * 100)
-                  : 0;
-                return (
-                  <div key={product.id} className="relative min-w-[140px] sm:min-w-[160px] flex-shrink-0">
-                    {discount > 0 && (
-                      <div className="absolute top-2 left-2 z-10 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
-                        -{discount}%
-                      </div>
-                    )}
-                    <ProductCard
-                      product={product}
-                      category={productCategory}
-                      lang={lang}
-                      onAddToWishlist={() => addToWishlist(product)}
-                      isInWishlist={wishlistItems.some(
-                        (item) => item.id === product.id,
-                      )}
-                      onAddToCart={addToCart}
-                      cartItems={cartItems}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      )}
 
       <section
         ref={productsSectionRef}

@@ -16,7 +16,7 @@ router.get('/active', getActiveBanners);
 
 // مسارات الأدمن المحمية 🔒
 router.use(protect);
-router.use(authorizeRoles('super_admin', 'store_manager'));
+router.use(authorizeRoles('super_admin', 'store_manager', 'team_member'));
 
 router.get('/', getAllBanners);
 router.post('/', createBanner);

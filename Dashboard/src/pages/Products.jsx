@@ -23,18 +23,20 @@ export default function Products() {
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [maxStock, setMaxStock] = useState("");
+  const [stockUnit, setStockUnit] = useState("all"); // "all", "piece", "kg", "g"
   const [maxPrice, setMaxPrice] = useState("");
   const [editingProduct, setEditingProduct] = useState(null);
   
   // نافذة تأكيد مخصصة (Custom Modal state)
   const [productToDelete, setProductToDelete] = useState(null);
 
-  const hasActiveFilters = query.trim() !== "" || categoryFilter !== "all" || maxStock !== "" || maxPrice !== "";
+  const hasActiveFilters = query.trim() !== "" || categoryFilter !== "all" || maxStock !== "" || maxPrice !== "" || stockUnit !== "all";
 
   const clearFilters = () => {
     setQuery("");
     setCategoryFilter("all");
     setMaxStock("");
+    setStockUnit("all");
     setMaxPrice("");
   };
 
@@ -60,12 +62,37 @@ export default function Products() {
         name = product.name.toLowerCase();
       }
 
-      const stockLimit = maxStock === "" ? true : product.stock <= Number(maxStock);
+      // Unit-aware stock filtering
+      let stockLimit = true;
+      if (maxStock !== "") {
+        const filterVal = Number(maxStock);
+        if (stockUnit === "all") {
+          // No unit filter, compare raw stock value
+          stockLimit = product.stock <= filterVal;
+        } else if (stockUnit === "piece") {
+          // Only filter quantity-type products
+          stockLimit = (product.unitType === "quantity" || product.unit === "قطعة" || product.unit === "pcs")
+            ? product.stock <= filterVal
+            : true;
+        } else if (stockUnit === "kg") {
+          // For weight-type products, stock is stored in grams, convert to kg for comparison
+          stockLimit = (product.unitType === "weight" || product.unit === "kg" || product.unit === "g")
+            ? (product.stock / 1000) <= filterVal
+            : true;
+        } else if (stockUnit === "g") {
+          // For weight-type products, compare in grams
+          stockLimit = (product.unitType === "weight" || product.unit === "kg" || product.unit === "g")
+            ? product.stock <= filterVal
+            : true;
+        }
+      }
+
       const priceLimit = maxPrice === "" ? true : product.price <= Number(maxPrice);
       const categoryMatch = categoryFilter === "all" ? true : product.categoryId === Number(categoryFilter);
-      return name.includes(text) && stockLimit && priceLimit && categoryMatch;
+      const activeOnly = product.isActive !== false;
+      return name.includes(text) && stockLimit && priceLimit && categoryMatch && activeOnly;
     });
-  }, [products, query, maxStock, maxPrice, categoryFilter, lang]);
+  }, [products, query, maxStock, stockUnit, maxPrice, categoryFilter, lang]);
 
   const handleAddOrUpdateProduct = async (data) => {
     try {
@@ -91,16 +118,10 @@ export default function Products() {
     }
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = () => {
     if (!productToDelete) return;
-    try {
-      await deleteProduct(productToDelete);
-      toast.success(lang === "ar" ? "تم حذف المنتج بنجاح!" : "Product deleted successfully!");
-    } catch (err) {
-      toast.error(lang === "ar" ? "فشل في إتمام عملية الحذف" : "Failed to delete");
-    } finally {
-      setProductToDelete(null);
-    }
+    deleteProduct(productToDelete);
+    setProductToDelete(null);
   };
 
   // 🔹 دالة جلب اسم القسم بدعم ديناميكي كامل للغة الواجهة (ar / en)
@@ -261,15 +282,26 @@ export default function Products() {
               />
             </div>
             
-            <div className="w-full sm:w-48 relative">
+            <div className="w-full sm:w-64 relative flex gap-2">
               <input 
                 type="number" 
                 min="0" 
                 value={maxStock} 
                 onChange={(e) => setMaxStock(e.target.value)} 
+                onWheel={(e) => e.target.blur()}
                 placeholder={lang === "ar" ? "المخزون أقل من..." : "Stock less than..."} 
-                className="w-full bg-gray-50/80 border border-gray-200 rounded-xl px-3 py-2 text-xs sm:text-sm text-gray-800 outline-none focus:border-[rgb(0,166,62)] focus:ring-2 focus:ring-[rgb(0,166,62)]/20 transition" 
+                className="flex-1 bg-gray-50/80 border border-gray-200 rounded-xl px-3 py-2 text-xs sm:text-sm text-gray-800 outline-none focus:border-[rgb(0,166,62)] focus:ring-2 focus:ring-[rgb(0,166,62)]/20 transition" 
               />
+              <select
+                value={stockUnit}
+                onChange={(e) => setStockUnit(e.target.value)}
+                className="w-28 bg-gray-50/80 border border-gray-200 rounded-xl px-2 py-2 text-[10px] sm:text-xs font-bold text-gray-700 outline-none focus:border-[rgb(0,166,62)] transition"
+              >
+                <option value="all">{lang === "ar" ? "الكل" : "All"}</option>
+                <option value="piece">{lang === "ar" ? "قطعة" : "Piece"}</option>
+                <option value="kg">{lang === "ar" ? "كيلو" : "Kg"}</option>
+                <option value="g">{lang === "ar" ? "جرام" : "Gram"}</option>
+              </select>
             </div>
 
             <div className="w-full sm:w-48 relative">
@@ -278,6 +310,7 @@ export default function Products() {
                 min="0" 
                 value={maxPrice} 
                 onChange={(e) => setMaxPrice(e.target.value)} 
+                onWheel={(e) => e.target.blur()}
                 placeholder={lang === "ar" ? "السعر أقل من..." : "Price less than..."} 
                 className="w-full bg-gray-50/80 border border-gray-200 rounded-xl px-3 py-2 text-xs sm:text-sm text-gray-800 outline-none focus:border-[rgb(0,166,62)] focus:ring-2 focus:ring-[rgb(0,166,62)]/20 transition" 
               />
@@ -312,6 +345,19 @@ export default function Products() {
                   ? (product.name[lang] || product.name.ar || product.name.en || "")
                   : product.name;
 
+                // discountDetails is derived here (not stored on the product) — it only
+                // reflects a CURRENTLY active offer (product.offerPrice is only set by the API
+                // while the offer is live), so the badge naturally disappears once a
+                // "while supplies last" offer hits 0 remaining or a time-limited offer expires,
+                // matching the "reverts to a regular product" behavior.
+                const discountDetails = product.offerPrice
+                  ? {
+                      type: product.offerExpiresAt ? "date" : "stock",
+                      expiryDate: product.offerExpiresAt || null,
+                      offerStockQty: product.offerStockRemaining ?? null,
+                    }
+                  : null;
+
                 return (
                   <ProductCard
                     key={product.id}
@@ -321,12 +367,13 @@ export default function Products() {
                     category={getCategoryName(product.categoryId)}
                     stock={product.stock}
                     unit={product.unit}
-                    discountDetails={product.discountDetails}
+                    discountDetails={discountDetails}
                     discount={
                       product.offerPrice
                         ? Math.round(((product.price - product.offerPrice) / product.price) * 100)
                         : 0
                     }
+                    offerPrice={product.offerPrice}
                     images={[product.image]}
                     onEdit={() => setEditingProduct(product)}
                     onDelete={(id) => setProductToDelete(id)}

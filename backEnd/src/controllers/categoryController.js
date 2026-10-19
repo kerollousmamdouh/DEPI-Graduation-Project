@@ -19,10 +19,9 @@ const generateSlug = (text) => {
 
 // 1. إضافة قسم جديد (خاص بالأدمن والـ Store Manager 🔒)
 export const createCategory = async (req, res) => {
-    const { name_ar, name_en, slug, parent_id, image_url, image, unit_type, unitType } = req.body;
+    const { name_ar, name_en, slug, parent_id, image_url, image } = req.body;
     const lang = req.lang;
     const finalImage = image_url || image || null;
-    const finalUnitType = unit_type || unitType || 'quantity';
     let finalSlug = slug || generateSlug(name_ar || '');
 
     if (!name_ar) {
@@ -38,12 +37,9 @@ export const createCategory = async (req, res) => {
             finalSlug = finalSlug + '-' + Date.now();
         }
 
-        // Ensure unit_type column exists (ignore error if it already exists)
-        await db.query("ALTER TABLE categories ADD COLUMN unit_type VARCHAR(20) DEFAULT 'quantity'").catch(() => {});
-
         const [result] = await db.query(
-            'INSERT INTO categories (name_ar, name_en, slug, parent_id, image_url, unit_type) VALUES (?, ?, ?, ?, ?, ?)',
-            [name_ar, name_en || null, finalSlug, parent_id || null, finalImage, finalUnitType]
+            'INSERT INTO categories (name_ar, name_en, slug, parent_id, image_url) VALUES (?, ?, ?, ?, ?)',
+            [name_ar, name_en || null, finalSlug, parent_id || null, finalImage]
         );
         res.status(201).json({ 
             message: lang === 'en' ? 'Category created successfully! 📂' : 'تم إنشاء القسم بنجاح! 📂', 
@@ -61,9 +57,6 @@ export const createCategory = async (req, res) => {
 export const getAllCategories = async (req, res) => {
     const lang = req.lang;
     try {
-        // Ensure unit_type column exists
-        await db.query("ALTER TABLE categories ADD COLUMN unit_type VARCHAR(20) DEFAULT 'quantity'").catch(() => {});
-
         const [categories] = await db.query(`
             SELECT 
                 id,
@@ -73,7 +66,6 @@ export const getAllCategories = async (req, res) => {
                 image_url AS image,
                 is_active,
                 CASE WHEN is_active = TRUE THEN 'Active' ELSE 'Hidden' END AS status,
-                COALESCE(unit_type, 'quantity') AS unitType,
                 IFNULL(name_${lang}, name_ar) AS name,
                 name_ar,
                 name_en
@@ -93,9 +85,6 @@ export const getAllCategories = async (req, res) => {
 export const getAllCategoriesAdmin = async (req, res) => {
     const lang = req.lang;
     try {
-        // Ensure unit_type column exists
-        await db.query("ALTER TABLE categories ADD COLUMN unit_type VARCHAR(20) DEFAULT 'quantity'").catch(() => {});
-
         const [categories] = await db.query(`
             SELECT 
                 id,
@@ -105,7 +94,6 @@ export const getAllCategoriesAdmin = async (req, res) => {
                 image_url AS image,
                 is_active,
                 CASE WHEN is_active = TRUE THEN 'Active' ELSE 'Hidden' END AS status,
-                COALESCE(unit_type, 'quantity') AS unitType,
                 IFNULL(name_${lang}, name_ar) AS name,
                 name_ar,
                 name_en
@@ -124,10 +112,9 @@ export const getAllCategoriesAdmin = async (req, res) => {
 // 4. تحديث قسم (PUT /:id) 🔒
 export const updateCategory = async (req, res) => {
     const { id } = req.params;
-    const { name_ar, name_en, slug, parent_id, image_url, image, unit_type, unitType } = req.body;
+    const { name_ar, name_en, slug, parent_id, image_url, image } = req.body;
     const lang = req.lang;
     const finalImage = image_url || image || null;
-    const finalUnitType = unit_type || unitType || null;
     let finalSlug = slug || (name_ar ? generateSlug(name_ar) : null);
 
     if (!name_ar) {
@@ -152,17 +139,10 @@ export const updateCategory = async (req, res) => {
             }
         }
 
-        if (finalUnitType) {
-            await db.query(
-                'UPDATE categories SET name_ar = ?, name_en = ?, slug = ?, parent_id = ?, image_url = ?, unit_type = ? WHERE id = ?',
-                [name_ar, name_en || null, finalSlug, parent_id || null, finalImage, finalUnitType, id]
-            );
-        } else {
-            await db.query(
-                'UPDATE categories SET name_ar = ?, name_en = ?, slug = ?, parent_id = ?, image_url = ? WHERE id = ?',
-                [name_ar, name_en || null, finalSlug, parent_id || null, finalImage, id]
-            );
-        }
+        await db.query(
+            'UPDATE categories SET name_ar = ?, name_en = ?, slug = ?, parent_id = ?, image_url = ? WHERE id = ?',
+            [name_ar, name_en || null, finalSlug, parent_id || null, finalImage, id]
+        );
 
         res.status(200).json({ 
             message: lang === 'en' ? 'Category updated successfully.' : 'تم تحديث القسم بنجاح.' 

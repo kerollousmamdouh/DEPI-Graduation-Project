@@ -42,15 +42,18 @@ export const updateStoreSetting = async (req, res) => {
     }
 
     try {
+        // Try update first
         const [result] = await db.query(
             'UPDATE store_settings SET key_value_ar = ? WHERE key_name = ?',
             [key_value, key_name]
         );
 
+        // If no rows affected, insert the new setting
         if (result.affectedRows === 0) {
-            return res.status(404).json({ 
-                message: lang === 'en' ? 'Setting not found in the system.' : 'الإعداد غير موجود في النظام' 
-            });
+            await db.query(
+                'INSERT INTO store_settings (key_name, key_value_ar, display_name_ar, display_name_en) VALUES (?, ?, ?, ?)',
+                [key_name, key_value, key_name, key_name]
+            );
         }
 
         res.status(200).json({ 

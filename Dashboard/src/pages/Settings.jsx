@@ -2,13 +2,49 @@ import React, { useEffect, useRef, useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { apiClient } from "../services/apiClient";
-import { User, Mail, Phone, Briefcase, Camera, Save, UserCircle } from "lucide-react";
+import { teamService } from "../services/teamService";
+import PasswordConfirmModal from "../components/PasswordConfirmModal";
+import {
+  Mail,
+  Phone,
+  Briefcase,
+  Camera,
+  Save,
+  UserCircle,
+  Eye,
+  EyeOff,
+  KeyRound,
+} from "lucide-react";
 import { toast } from "sonner";
 
+function Field({ label, hint, icon, children }) {
+  return (
+    <div>
+      <label className="mb-2 flex items-center justify-between text-sm font-medium text-gray-600">
+        <span className="flex items-center gap-1.5">
+          {icon}
+          {label}
+        </span>
+        {hint && (
+          <span className="text-xs font-normal text-gray-400">{hint}</span>
+        )}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+const inputClass =
+  "w-full border-b-2 border-gray-100 bg-transparent px-0 py-2.5 text-gray-900 outline-none transition-colors focus:border-[rgb(0,166,62)]";
+
 export default function Settings() {
-  const { t } = useLanguage();
-  const { user, setUser } = useAuth();
+  const { lang, t } = useLanguage();
+  const { user, setUser, isOwner } = useAuth();
   const fileInputRef = useRef(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingUpdatedData, setPendingUpdatedData] = useState(null);
+  const [pendingMergedUser, setPendingMergedUser] = useState(null);
 
   // ربط بيانات الـ state ببيانات الـ user اللي مسجل دخول
   const [form, setForm] = useState({
@@ -17,7 +53,8 @@ export default function Settings() {
     phone: user?.phone || "",
     jobTitle: user?.jobTitle || "",
     bio: user?.bio || "",
-    avatar: user?.avatar || "https://randomuser.me/api/portraits/men/75.jpg"
+    password: "",
+    avatar: user?.avatar || "https://randomuser.me/api/portraits/men/75.jpg",
   });
 
   // تحديث الـ Form لو الـ user اتغير
@@ -29,114 +66,229 @@ export default function Settings() {
         phone: user.phone || "",
         jobTitle: user.jobTitle || "",
         bio: user.bio || "",
-        avatar: user.avatar || "https://randomuser.me/api/portraits/men/75.jpg"
+        password: "", // never prefilled — blank means "keep current password"
+        avatar: user.avatar || "https://randomuser.me/api/portraits/men/75.jpg",
       });
     }
   }, [user]);
 
-  const update = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+  const update = (key) => (e) =>
+    setForm((f) => ({ ...f, [key]: e.target.value }));
 
   const handlePhotoChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onloadend = () => setForm(f => ({ ...f, avatar: reader.result }));
+    reader.onloadend = () => setForm((f) => ({ ...f, avatar: reader.result }));
     reader.readAsDataURL(file);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
+
+    const updatedData = {
+      name: form.fullName,
+      email: form.email,
+      phone: form.phone,
+      // Only send a password if the person actually typed a new one.
+      ...(form.password ? { password: form.password } : {}),
+    };
+    const mergedUser = {
+      ...user,
+      ...form,
+      fullName: form.fullName,
+      password: undefined,
+    };
+
+    if (isOwner) {
+      await persistProfile(updatedData, mergedUser);
+    } else {
+      // Non-owners can see and edit their own info here, but saving it
+      // requires the owner's password as a confirmation step.
+      setPendingUpdatedData(updatedData);
+      setPendingMergedUser(mergedUser);
+      setConfirmOpen(true);
+    }
+  };
+
+  const persistProfile = async (updatedData, mergedUser) => {
     try {
-      const updatedData = {
-        name: form.fullName,
-        email: form.email,
-        phone: form.phone,
-      };
-      
       await apiClient.put("/auth/profile", updatedData);
-      
-      const mergedUser = { ...user, ...form, fullName: form.fullName };
+
       setUser(mergedUser);
       localStorage.setItem("currentUser", JSON.stringify(mergedUser));
-      
+      setForm((f) => ({ ...f, password: "" }));
+
       toast.success("Profile updated successfully!");
     } catch (err) {
       toast.error("Failed to update profile.");
     }
   };
 
+  const handleConfirmOwnerPassword = async (password) => {
+    const result = await teamService.verifyOwnerPassword(password);
+    if (!result?.valid) {
+      throw new Error("Incorrect password. Please try again.");
+    }
+    setConfirmOpen(false);
+    await persistProfile(pendingUpdatedData, pendingMergedUser);
+    setPendingUpdatedData(null);
+    setPendingMergedUser(null);
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-10 px-4">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">{t("adminProfile")}</h1>
-        <p className="text-gray-500">Manage your personal information and account settings</p>
+    <div className="max-w-4xl mx-auto space-y-6 pb-10 px-4">
+      {/* Profile band */}
+      <div className="relative overflow-hidden rounded-3xl bg-[#0F172A] p-8 text-white">
+        <div className="pointer-events-none absolute -left-20 -bottom-24 h-72 w-72 rounded-full bg-[rgb(0,166,62)]/20 blur-3xl" />
+
+        <div className="relative flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
+          <div className="group relative shrink-0">
+            <div className="h-28 w-28 overflow-hidden rounded-3xl border-2 border-white/10 bg-white/5 ring-4 ring-white/10">
+              <img
+                src={form.avatar}
+                alt="Profile"
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-full bg-[rgb(0,166,62)] text-white shadow-lg transition hover:bg-[rgb(0,145,55)] active:scale-95"
+            >
+              <Camera size={16} />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoChange}
+              className="hidden"
+            />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-white/50">
+              {t("adminProfile")}
+            </p>
+            <h1 className="mt-1 text-3xl font-bold">{form.fullName || "—"}</h1>
+            <p className="mt-1 text-white/60">
+              {form.jobTitle || "No job title set"}
+            </p>
+          </div>
+        </div>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
-        {/* Profile Card */}
-        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row items-center gap-8">
-          <div className="relative group">
-            <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 ring-4 ring-gray-50">
-              <img src={form.avatar} alt="Profile" className="w-full h-full object-cover" />
-            </div>
-            <button 
-              type="button" 
-              onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-0 right-0 p-3 bg-green-600 text-white rounded-full shadow-lg hover:bg-green-700 transition-all"
+        {/* Details */}
+        <div className="rounded-3xl border border-gray-100 bg-white p-8">
+          <h3 className="mb-6 flex items-center gap-2 text-base font-bold text-gray-900">
+            <UserCircle size={18} className="text-[rgb(0,166,62)]" /> Personal
+            information
+          </h3>
+
+          <div className="grid grid-cols-1 gap-x-10 gap-y-7 md:grid-cols-2">
+            <Field label="Full Name">
+              <input
+                value={form.fullName}
+                onChange={update("fullName")}
+                className={inputClass}
+              />
+            </Field>
+
+            <Field
+              label="Job Title"
+              icon={<Briefcase size={14} className="text-gray-400" />}
             >
-              <Camera size={18} />
-            </button>
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">{form.fullName}</h2>
-            <p className="text-gray-500 font-medium">{form.jobTitle}</p>
+              <input
+                value={form.jobTitle}
+                onChange={update("jobTitle")}
+                className={inputClass}
+              />
+            </Field>
+
+            <Field
+              label="Email"
+              icon={<Mail size={14} className="text-gray-400" />}
+            >
+              <input
+                type="email"
+                value={form.email}
+                onChange={update("email")}
+                className={inputClass}
+              />
+            </Field>
+
+            <Field
+              label="Phone Number"
+              icon={<Phone size={14} className="text-gray-400" />}
+            >
+              <input
+                value={form.phone}
+                onChange={update("phone")}
+                className={inputClass}
+              />
+            </Field>
+
+            <Field
+              label="New Password"
+              hint="Leave blank to keep current"
+              icon={<KeyRound size={14} className="text-gray-400" />}
+            >
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  value={form.password}
+                  onChange={update("password")}
+                  className={`${inputClass} pr-9`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  className="absolute right-0 top-2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </div>
+            </Field>
+
+            <div className="md:col-span-2">
+              <Field label="Bio">
+                <textarea
+                  rows={3}
+                  value={form.bio}
+                  onChange={update("bio")}
+                  className={`${inputClass} resize-none`}
+                />
+              </Field>
+            </div>
           </div>
         </div>
 
-        {/* Details Card */}
-        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 space-y-6">
-          <h3 className="flex items-center gap-2 text-lg font-bold text-gray-800"><UserCircle className="text-green-600" /> Personal Information</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-2">Full Name</label>
-              <input value={form.fullName} onChange={update("fullName")} className="w-full bg-gray-50 rounded-2xl px-4 py-3.5 border border-gray-100 focus:ring-2 focus:ring-green-500 outline-none transition-all" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-2">Job Title</label>
-              <div className="relative">
-                <Briefcase className="absolute left-3 top-3.5 text-gray-400" size={18} />
-                <input value={form.jobTitle} onChange={update("jobTitle")} className="w-full bg-gray-50 rounded-2xl pl-10 pr-4 py-3.5 border border-gray-100 focus:ring-2 focus:ring-green-500 outline-none transition-all" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-2">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3.5 text-gray-400" size={18} />
-                <input type="email" value={form.email} onChange={update("email")} className="w-full bg-gray-50 rounded-2xl pl-10 pr-4 py-3.5 border border-gray-100 focus:ring-2 focus:ring-green-500 outline-none transition-all" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-2">Phone Number</label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-3.5 text-gray-400" size={18} />
-                <input value={form.phone} onChange={update("phone")} className="w-full bg-gray-50 rounded-2xl pl-10 pr-4 py-3.5 border border-gray-100 focus:ring-2 focus:ring-green-500 outline-none transition-all" />
-              </div>
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-600 mb-2">Bio</label>
-              <textarea rows={4} value={form.bio} onChange={update("bio")} className="w-full bg-gray-50 rounded-2xl px-4 py-3.5 border border-gray-100 focus:ring-2 focus:ring-green-500 outline-none transition-all" />
-            </div>
-          </div>
-        </div>
+        {!isOwner && (
+          <p className="rounded-2xl border border-amber-100 bg-amber-50 px-5 py-4 text-sm text-amber-700">
+            Saving changes to your profile requires the administrator's password
+            to confirm.
+          </p>
+        )}
 
         <div className="flex justify-end">
-          <button type="submit" className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold text-lg rounded-2xl px-10 py-4 shadow-lg shadow-green-200 transition-all transform hover:-translate-y-1">
-            <Save size={20} /> Save Changes
+          <button
+            type="submit"
+            className="inline-flex items-center gap-2 rounded-2xl bg-[rgb(0,166,62)] px-8 py-3.5 font-semibold text-white shadow-lg shadow-[rgb(0,166,62)]/20 transition-all hover:-translate-y-0.5 hover:bg-[rgb(0,145,55)] active:translate-y-0 active:scale-[0.98]"
+          >
+            <Save size={18} /> Save Changes
           </button>
         </div>
       </form>
+
+      <PasswordConfirmModal
+        open={confirmOpen}
+        title="Confirm profile changes"
+        description="Enter the administrator's password to save these changes to your profile."
+        onConfirm={handleConfirmOwnerPassword}
+        onClose={() => setConfirmOpen(false)}
+      />
     </div>
   );
 }

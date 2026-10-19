@@ -28,7 +28,10 @@ export default function ProductForm({ onSubmit, initialData = null, onCancelEdit
     discountType: "stock",   // "stock" أو "date"
     discountExpiryDate: "",
     discountStockQty: "",
+    additionalOfferStock: "", // كمية إضافية لإضافتها للعرض
   });
+
+  const [remainingOfferStock, setRemainingOfferStock] = useState(null);
 
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -45,9 +48,19 @@ export default function ProductForm({ onSubmit, initialData = null, onCancelEdit
 
   useEffect(() => {
     if (initialData) {
+      // ⚠️ initialData.offerPrice only comes back from the API when the offer is CURRENTLY
+      // active (still has stock left / hasn't expired). A depleted "while supplies last" offer
+      // or an expired time-limited offer will have offerPrice = null even though the admin's
+      // original discount_price is still saved on the product. We fall back to the raw
+      // discount_price (always present, never gated by active/expired status) so the edit form
+      // still shows the configured offer instead of silently hiding it.
+      const rawOfferPrice = initialData.discount_price != null
+        ? Number(initialData.discount_price)
+        : (initialData.offerPrice != null ? Number(initialData.offerPrice) : null);
+
       let calcDiscount = initialData.discount || "";
-      if (!calcDiscount && initialData.price && initialData.offerPrice) {
-        calcDiscount = Math.round(((initialData.price - initialData.offerPrice) / initialData.price) * 100);
+      if (!calcDiscount && initialData.price && rawOfferPrice) {
+        calcDiscount = Math.round(((initialData.price - rawOfferPrice) / initialData.price) * 100);
       }
 
       // تحديد نوع المنتج (وزن أم قطعة) - من بيانات المنتج itself أولاً
@@ -58,6 +71,20 @@ export default function ProductForm({ onSubmit, initialData = null, onCancelEdit
       if (isWeight && initialData.stock) {
         displayStock = Number(initialData.stock) / 1000;
       }
+
+      let displayOfferStock = initialData.offerStock || "";
+      if (isWeight && initialData.offerStock) {
+        displayOfferStock = Number(initialData.offerStock) / 1000;
+      }
+
+      let displayRemaining = null;
+      if (initialData.offerStockRemaining != null && initialData.offer_until_stock_out) {
+        displayRemaining = isWeight
+          ? Number(initialData.offerStockRemaining) / 1000
+          : Number(initialData.offerStockRemaining);
+      }
+
+      setRemainingOfferStock(displayRemaining);
 
       setFormData({
         nameAr: initialData.name?.ar || "",
@@ -72,7 +99,8 @@ export default function ProductForm({ onSubmit, initialData = null, onCancelEdit
         unitType: isWeight ? "weight" : "quantity",
         discountType: initialData.offerExpiresAt ? "date" : "stock",
         discountExpiryDate: initialData.offerExpiresAt ? initialData.offerExpiresAt.substring(0, 16) : "",
-        discountStockQty: initialData.offerStock || "",
+        discountStockQty: displayOfferStock,
+        additionalOfferStock: "",
       });
 
       const formElement = document.getElementById("product-form-container");
@@ -89,39 +117,14 @@ export default function ProductForm({ onSubmit, initialData = null, onCancelEdit
     const { name, value } = e.target;
     setErrorMsg("");
 
-    setFormData((prev) => {
-      const updated = { ...prev, [name]: value };
-
-      if (name === "categoryId") {
-        const selectedCat = activeCategories.find((c) => String(c.id) === String(value));
-        if (selectedCat) {
-          const isWeight = selectedCat.unitType === "weight" || [1, 2, 4].includes(Number(selectedCat.id));
-          updated.unitType = isWeight ? "weight" : "quantity";
-          updated.weightUnit = isWeight ? "kg" : "piece";
-        }
-      }
-      return updated;
-    });
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   // اختيار قسم جديد من الـ Custom Dropdown
   const handleSelectCategory = (catId) => {
     setErrorMsg("");
-    
-    const selectedCat = activeCategories.find((c) => String(c.id) === String(catId));
-    
-    setFormData((prev) => {
-      const isWeight = selectedCat 
-        ? (selectedCat.unitType === "weight" || [1, 2, 4].includes(Number(selectedCat.id))) 
-        : false;
 
-      return {
-        ...prev,
-        categoryId: catId,
-        unitType: isWeight ? "weight" : "quantity",
-        weightUnit: isWeight ? "kg" : "piece",
-      };
-    });
+    setFormData((prev) => ({ ...prev, categoryId: catId }));
     setIsDropdownOpen(false);
   };
 
@@ -177,18 +180,32 @@ export default function ProductForm({ onSubmit, initialData = null, onCancelEdit
     if (discountVal > 0) {
       if (formData.discountType === "stock") {
         offerStock = formData.discountStockQty ? Number(formData.discountStockQty) : null;
+        if (formData.unitType === "weight" && formData.weightUnit === "kg" && offerStock) {
+          offerStock = Math.round(offerStock * 1000);
+        }
         offerExpiresAt = null;
 
-        const checkStockLimit = formData.unitType === "weight" && formData.weightUnit === "kg" ? stock : Number(formData.discountStockQty);
-        const totalStockForCheck = stock;
-        if (checkStockLimit > totalStockForCheck) {
-          setErrorMsg(lang === "ar" ? "كمية العرض لا يمكن أن تتجاوز كمية المخزون الإجمالي!" : "Offer stock cannot exceed total stock!");
-          return;
+        const isNewStockOffer = !initialData || remainingOfferStock == null;
+        if (isNewStockOffer) {
+          const checkStockLimit = offerStock || stock;
+          const totalStockForCheck = stock;
+          if (checkStockLimit > totalStockForCheck) {
+            setErrorMsg(lang === "ar" ? "كمية العرض لا يمكن أن تتجاوز كمية المخزون الإجمالي!" : "Offer stock cannot exceed total stock!");
+            return;
+          }
         }
       } else if (formData.discountType === "date") {
         offerExpiresAt = formData.discountExpiryDate ? new Date(formData.discountExpiryDate).toISOString() : null;
         offerStock = null;
       }
+    }
+
+    let offerStockToAdd = 0;
+    if (initialData && discountVal > 0 && formData.discountType === "stock" && formData.additionalOfferStock) {
+      const raw = Number(formData.additionalOfferStock) || 0;
+      offerStockToAdd = formData.unitType === "weight" && formData.weightUnit === "kg"
+        ? Math.round(raw * 1000)
+        : Math.round(raw);
     }
 
     const productPayload = {
@@ -203,8 +220,11 @@ export default function ProductForm({ onSubmit, initialData = null, onCancelEdit
       unitType: formData.unitType,
       image: formData.image || "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=400&q=80",
       imageFile: formData.imageFile,
-      offerStock,
-      offerExpiresAt
+      offerStock: (!initialData || remainingOfferStock == null) ? offerStock : null,
+      offerExpiresAt,
+      offer_start_at: discountVal > 0 && formData.discountType === "date" ? new Date().toISOString() : null,
+      offer_until_stock_out: discountVal > 0 && formData.discountType === "stock",
+      offerStockToAdd: offerStockToAdd > 0 ? offerStockToAdd : undefined,
     };
 
     onSubmit(productPayload);
@@ -212,8 +232,10 @@ export default function ProductForm({ onSubmit, initialData = null, onCancelEdit
     setFormData({
       nameAr: "", nameEn: "", price: "", discount: "", stock: "",
       categoryId: "", image: "", imageFile: null, unitType: "quantity",
-      weightUnit: "kg", discountType: "stock", discountExpiryDate: "", discountStockQty: ""
+      weightUnit: "kg", discountType: "stock", discountExpiryDate: "", discountStockQty: "",
+      additionalOfferStock: ""
     });
+    setRemainingOfferStock(null);
   };
 
   // مطابقة الـ Dropdown مع البيانات المفلترة بأمان
@@ -394,6 +416,7 @@ export default function ProductForm({ onSubmit, initialData = null, onCancelEdit
                 name="stock" 
                 value={formData.stock} 
                 onChange={handleChange} 
+                onWheel={(e) => e.target.blur()}
                 placeholder={formData.unitType === "weight" ? "مثال: 5.200" : "عدد القطع"} 
                 className={inputClass} 
                 min="0" 
@@ -413,7 +436,7 @@ export default function ProductForm({ onSubmit, initialData = null, onCancelEdit
         <div className="grid gap-3 md:grid-cols-2">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">{lang === "ar" ? "السعر الأساسي" : "Base Price"}</label>
-            <input type="number" name="price" value={formData.price} onChange={handleChange} placeholder="0.00" className={inputClass} min="0" step="0.01" required />
+            <input type="number" name="price" value={formData.price} onChange={handleChange} onWheel={(e) => e.target.blur()} placeholder="0.00" className={inputClass} min="0" step="0.01" required />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">{lang === "ar" ? "نسبة الخصومات (%) إن وجدت" : "Discount % (Optional)"}</label>
@@ -422,6 +445,7 @@ export default function ProductForm({ onSubmit, initialData = null, onCancelEdit
               name="discount"
               value={formData.discount}
               onChange={handleChange}
+              onWheel={(e) => e.target.blur()}
               placeholder="مثال: 15"
               className={inputClass}
               min="0"
@@ -451,20 +475,66 @@ export default function ProductForm({ onSubmit, initialData = null, onCancelEdit
 
             <div>
               {formData.discountType === "stock" ? (
-                <div>
-                  <label className="block text-[11px] font-medium text-gray-500 mb-1">
-                    {lang === "ar" ? "عدد الكمية المتاحة ضمن العرض" : "Offer Stock Limit"}
-                  </label>
-                  <input
-                    type="number"
-                    name="discountStockQty"
-                    value={formData.discountStockQty}
-                    onChange={handleChange}
-                    placeholder={`مثال: 10 من إجمالي ${formData.stock || 'الكمية'}`}
-                    className={inputClass}
-                    min="1"
-                    required
-                  />
+                <div className="space-y-3">
+                  {(!initialData || remainingOfferStock == null) && (
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-500 mb-1">
+                        {formData.unitType === "weight"
+                          ? (lang === "ar" ? "كمية العرض المتاحة (كيلو جرام)" : "Offer Stock Limit (Kg)")
+                          : (lang === "ar" ? "عدد الكمية المتاحة ضمن العرض" : "Offer Stock Limit (Pieces)")}
+                      </label>
+                      <input
+                        type="number"
+                        name="discountStockQty"
+                        value={formData.discountStockQty}
+                        onChange={handleChange}
+                        onWheel={(e) => e.target.blur()}
+                        placeholder={formData.unitType === "weight"
+                          ? `مثال: 2.5 من إجمالي ${formData.stock || 'الكمية'} كجم`
+                          : `مثال: 10 من إجمالي ${formData.stock || 'الكمية'}`}
+                        className={inputClass}
+                        min="1"
+                        step={formData.unitType === "weight" ? "0.001" : "1"}
+                        required={!initialData || remainingOfferStock == null}
+                      />
+                      {initialData && (
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          {lang === "ar"
+                            ? "لا يوجد عرض \"حتى نفاد الكمية\" شغال على هذا المنتج حالياً — أدخل الكمية عشان تبدأ عرض جديد."
+                            : "This product has no active stock-limited offer yet — enter a quantity to start a new one."}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {initialData && remainingOfferStock != null && (
+                    <div className="flex items-center justify-between bg-white rounded-xl border border-emerald-200 px-4 py-2.5">
+                      <span className="text-xs font-semibold text-gray-600">
+                        {lang === "ar" ? "الكمية المتبقية من العرض" : "Remaining Offer Stock"}
+                      </span>
+                      <span className="text-sm font-black text-emerald-600">
+                        {remainingOfferStock} {formData.unitType === "weight" ? (formData.weightUnit === "kg" ? "كجم" : "جم") : (lang === "ar" ? "قطعة" : "pcs")}
+                      </span>
+                    </div>
+                  )}
+                  {initialData && (
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-500 mb-1">
+                        {formData.unitType === "weight"
+                          ? (lang === "ar" ? "إضافة كمية إضافية للعرض (كيلو جرام)" : "Additional Offer Stock (Kg)")
+                          : (lang === "ar" ? "إضافة كمية إضافية للعرض" : "Additional Offer Stock")}
+                      </label>
+                      <input
+                        type="number"
+                        name="additionalOfferStock"
+                        value={formData.additionalOfferStock}
+                        onChange={handleChange}
+                        onWheel={(e) => e.target.blur()}
+                        placeholder={lang === "ar" ? "أدخل الكمية المراد إضافتها" : "Enter amount to add"}
+                        className={inputClass}
+                        min="0"
+                      />
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div>

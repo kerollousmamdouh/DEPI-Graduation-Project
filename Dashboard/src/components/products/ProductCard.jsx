@@ -10,6 +10,7 @@ export default function ProductCard({
   name,
   price,
   discount = 0,
+  offerPrice = null,
   unit = "kg",
   stock = 0,
   category,
@@ -22,7 +23,7 @@ export default function ProductCard({
 }) {
   const { lang } = useLanguage();
 
-  const finalPrice = discount > 0 ? price - (price * discount) / 100 : price;
+  const finalPrice = offerPrice ? Number(offerPrice) : (discount > 0 ? price - (price * discount) / 100 : price);
   const isOutOfStock = stock <= 0;
   const isLowStock = !isOutOfStock && stock < 5;
 

@@ -17,8 +17,8 @@ export const productsService = {
   },
 
   async deleteProduct(id) {
-    await apiClient.delete(`/products/${id}`);
-    return id;
+    const response = await apiClient.delete(`/products/${id}`);
+    return { id, ...(response || {}) };
   },
 
   async updateStock(id, stock) {

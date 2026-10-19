@@ -20,6 +20,7 @@ import {
   Globe,
   X,
   Paperclip,
+  Search,
 } from "lucide-react";
 
 const UserProfile = () => {
@@ -36,6 +37,7 @@ const UserProfile = () => {
     refreshTicketMessages,
     editTicket,
     editChatMessage,
+    deleteChatMessage,
     setSupportTickets,
     fetchSupportTickets,
     updateProfileData,
@@ -180,13 +182,14 @@ const UserProfile = () => {
   const [editingText, setEditingText] = useState("");
   const [editingMsgId, setEditingMsgId] = useState(null);
   const [editingMsgText, setEditingMsgText] = useState("");
+  const [chatSearch, setChatSearch] = useState("");
 
   const userPhotoSrc = currentUser?.image || currentUser?.photo_url || null;
 
-  // حفظ التابة الحالية في الـ LocalStorage علشان تفتكرها بعد الريفرش
   useEffect(() => {
     localStorage.setItem("dealora_profile_active_tab", activeTab);
   }, [activeTab]);
+  
   useEffect(() => {
     if (!currentUser) {
       navigate("/login");
@@ -446,7 +449,6 @@ const UserProfile = () => {
     }
 
     if (sendOrderChangeRequest && orderToContact) {
-      // تفصيل البيانات وتنسيقها بشكل جميل عبر استخدام الخطوط الفاصلة لإعطاء مظهر منسق ومنفصل تماماً
       const formattedMessage = isAr
         ? `🚨 [طلب تعديل] 🚨\n----------------------------------\n📦 رقم الطلب: #${orderToContact.id}\n----------------------------------\n💬 نص الرسالة:\n${orderMessageText}`
         : `🚨 [Change Request] 🚨\n----------------------------------\n📦 Order ID: #${orderToContact.id}\n----------------------------------\n💬 Message:\n${orderMessageText}`;
@@ -565,14 +567,12 @@ const UserProfile = () => {
       dir={isAr ? "rtl" : "ltr"}
     >
       <div className="max-w-7xl mx-auto px-1 sm:px-6">
-        {/* Upper Action Bar */}
         <div className="flex flex-row justify-between items-center gap-2 mb-5 border-b pb-4 border-gray-200/50">
           <div className="flex items-center gap-3">
             <h1 className="font-extrabold text-gray-900 text-lg sm:text-2xl tracking-tight">
               {t.myAccount}
             </h1>
 
-            {/* Custom Toggle Switch */}
             <div
               onClick={() => setLang(isAr ? "en" : "ar")}
               className="relative w-14 h-7 bg-gray-200 rounded-full p-1 cursor-pointer select-none transition-colors duration-300 flex items-center justify-between px-1.5 shrink-0"
@@ -609,7 +609,6 @@ const UserProfile = () => {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sidebar - Desktop Only Layout */}
           <div className="hidden lg:block w-full lg:w-1/4 bg-white rounded-2xl border border-gray-200/60 p-3 shadow-xs lg:sticky lg:top-4 h-fit">
             <div className="flex flex-col gap-1.5">
               {sidebarTabs.map((tab) => (
@@ -646,7 +645,6 @@ const UserProfile = () => {
             </div>
           </div>
 
-          {/* Tab Content Area */}
           <div className="w-full lg:w-3/4 space-y-6">
             {infoMessage.text && (
               <motion.div
@@ -670,10 +668,8 @@ const UserProfile = () => {
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.18 }}
               >
-                {/* ================= TABS 1: DASHBOARD ================= */}
                 {activeTab === "dashboard" && (
                   <div className="space-y-5">
-                    {/* Welcome Header */}
                     <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-200/60 shadow-2xs flex flex-row items-center gap-4 text-start">
                       <div className="relative w-16 h-16 sm:w-24 sm:h-24 rounded-full border-2 border-green-500 bg-green-600/10 flex items-center justify-center shadow-inner text-green-700 font-bold text-base sm:text-xl overflow-hidden shrink-0">
                         {userPhotoSrc && !imgError ? (
@@ -731,7 +727,6 @@ const UserProfile = () => {
                       </div>
                     </div>
 
-                    {/* Stats Grid */}
                     <div className="grid grid-cols-3 gap-2">
                       <div className="bg-[#f0f7ff] border border-[#e0efff] p-2.5 sm:p-4 rounded-xl flex flex-col sm:flex-row items-center justify-between text-center sm:text-start">
                         <div className="space-y-0.5">
@@ -776,7 +771,6 @@ const UserProfile = () => {
                       </div>
                     </div>
 
-                    {/* Account Details */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-start">
                       <div className="bg-white p-4 rounded-xl border border-gray-200/60 shadow-3xs space-y-3">
                         <h3 className="text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b pb-1.5 flex items-center gap-1.5">
@@ -814,7 +808,6 @@ const UserProfile = () => {
                       </div>
                     </div>
 
-                    {/* Recent Orders */}
                     <div className="bg-white rounded-xl border border-gray-200/60 shadow-3xs overflow-hidden">
                       <div className="p-3 border-b border-gray-100 font-bold text-[10px] uppercase tracking-wider text-gray-400 text-start">
                         {t.recentActivity}
@@ -884,7 +877,6 @@ const UserProfile = () => {
                   </div>
                 )}
 
-                {/* ================= TABS 2: ORDER HISTORY ================= */}
                 {activeTab === "orders" && (
                   <div className="bg-white rounded-xl border border-gray-200/60 shadow-3xs overflow-hidden">
                     <div className="p-4 border-b border-gray-100 font-bold text-sm text-gray-800 text-start">
@@ -950,7 +942,6 @@ const UserProfile = () => {
                   </div>
                 )}
 
-                {/* ================= TABS 3: SETTINGS & PASSWORD ================= */}
                 {activeTab === "info" && (
                   <div className="space-y-4 text-start pb-6">
                     <form
@@ -1000,13 +991,9 @@ const UserProfile = () => {
                           <input
                             type="email"
                             value={userInfo.email}
-                            onChange={(e) =>
-                              setUserInfo({
-                                ...userInfo,
-                                email: e.target.value,
-                              })
-                            }
-                            className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-900 outline-none focus:border-green-500"
+                            readOnly
+                            className="w-full p-2.5 bg-gray-100 border border-gray-200 rounded-xl text-xs text-gray-500 cursor-not-allowed"
+                            title={isAr ? "لا يمكن تغيير البريد الإلكتروني" : "Email cannot be changed"}
                           />
                         </div>
                         <div>
@@ -1116,7 +1103,6 @@ const UserProfile = () => {
                   </div>
                 )}
 
-                {/* ================= TABS 4: WISHLIST ================= */}
                 {activeTab === "favs" && (
                   <div className="bg-white p-4 rounded-xl border border-gray-200/60 shadow-3xs text-start">
                     <h2 className="text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b pb-2.5 mb-3">
@@ -1168,11 +1154,9 @@ const UserProfile = () => {
                   </div>
                 )}
 
-                {/* ================= TABS 5: SUPPORT CHAT (فريق الدعم) ================= */}
                 {activeTab === "chat" && (
                   <div className="space-y-4 text-start pb-6">
                     <div className="bg-white rounded-2xl border border-gray-200/60 shadow-md overflow-hidden flex flex-col h-[70vh] sm:h-[60vh]">
-                      {/* Chat Header */}
                       <div className="bg-linear-to-r from-green-600 to-emerald-500 p-3 sm:p-4 text-white flex items-center justify-between shrink-0">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-black text-xs">
@@ -1192,7 +1176,21 @@ const UserProfile = () => {
                         </span>
                       </div>
 
-                      {/* Chat Messages Body */}
+                      {supportTickets.length > 0 && (
+                        <div className="px-3 py-2 bg-white border-b border-gray-100 shrink-0">
+                          <div className="relative">
+                            <Search className="absolute start-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                            <input
+                              type="text"
+                              value={chatSearch}
+                              onChange={(e) => setChatSearch(e.target.value)}
+                              placeholder={isAr ? "ابحث في المحادثات..." : "Search conversations..."}
+                              className="w-full rounded-xl border border-gray-200 bg-gray-50 ps-8 pe-3 py-2 text-[11px] font-medium outline-none focus:border-green-500 focus:bg-white transition-all"
+                            />
+                          </div>
+                        </div>
+                      )}
+
                       <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-[#efeae2] space-y-3.5 flex flex-col-reverse pattern-bg">
                         {supportTickets.length === 0 ? (
                           <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-2">
@@ -1209,7 +1207,13 @@ const UserProfile = () => {
                           </div>
                         ) : (
                           <div className="flex flex-col gap-4 w-full">
-                            {[...supportTickets].reverse().map((ticket) => (
+                            {[...supportTickets].reverse().filter((ticket) => {
+                              if (!chatSearch.trim()) return true;
+                              const q = chatSearch.toLowerCase();
+                              const subjectMatch = (ticket.subject || "").toLowerCase().includes(q);
+                              const msgMatch = ticket.messages?.some((m) => (m.text || "").toLowerCase().includes(q));
+                              return subjectMatch || msgMatch;
+                            }).map((ticket) => (
                               <div key={ticket.id} className="space-y-2.5">
                                 <div className="flex justify-center">
                                   <span className="bg-white/70 text-[9px] font-extrabold px-2.5 py-0.5 rounded-full text-gray-500 shadow-2xs border border-gray-200/30">
@@ -1227,7 +1231,6 @@ const UserProfile = () => {
                                     const isEditingMsg = editingMsgId === String(msg.id);
                                     const msgId = String(msg.id);
 
-                                    // Customer can edit only own messages + only before admin replies
                                     const hasAdminReplied = ticket.messages.some(
                                       (m) => m.sender === "admin"
                                     );
@@ -1284,7 +1287,6 @@ const UserProfile = () => {
                                                     : "bg-white text-gray-800 rounded-tl-none border border-gray-200/50 whitespace-pre-line"
                                                 }`}
                                               >
-                                                {/* Show admin name for multiple admins */}
                                                 {isAdmin && msg.senderName && (
                                                   <span className="block text-[9px] font-black mb-1 text-emerald-700">
                                                     {msg.senderName}
@@ -1319,12 +1321,11 @@ const UserProfile = () => {
                                                       ? new Date(msg.createdAt).toLocaleDateString(isAr ? "ar-EG" : "en-US", { month: "short", day: "numeric" }) +
                                                         " " +
                                                         new Date(msg.createdAt).toLocaleTimeString(isAr ? "ar-EG" : "en-US", { hour: "2-digit", minute: "2-digit" })
-                                                      : ""}
+                                                      : msg.time || ""}
                                                   </span>
                                                 </div>
                                               </div>
 
-                                              {/* Edit button — only for customer's own messages before admin replies */}
                                               {canEdit && !isEditingMsg && (
                                                 <div className={`flex gap-2.5 text-[9px] text-gray-500 font-bold px-1 ${isUser ? "justify-end" : "justify-start"}`}>
                                                   <button
@@ -1337,6 +1338,26 @@ const UserProfile = () => {
                                                   >
                                                     <Edit2 size={9} />
                                                     {isAr ? "تعديل" : "Edit"}
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    onClick={async () => {
+                                                      if (!confirm(isAr ? "هل تريد حذف هذه الرسالة؟" : "Delete this message?")) return;
+                                                      const rawId = String(msgId).replace(/^CHAT-/, "");
+                                                      try {
+                                                        await deleteChatMessage(rawId);
+                                                        setSupportTickets((prev) =>
+                                                          prev.map((t) => ({
+                                                            ...t,
+                                                            messages: t.messages.filter((m) => String(m.id) !== String(msgId)),
+                                                          }))
+                                                        );
+                                                      } catch {}
+                                                    }}
+                                                    className="hover:text-red-600 flex items-center gap-0.5 transition-colors"
+                                                  >
+                                                    <Trash2 size={9} />
+                                                    {isAr ? "حذف" : "Delete"}
                                                   </button>
                                                 </div>
                                               )}
@@ -1369,7 +1390,6 @@ const UserProfile = () => {
                         </div>
                       )}
 
-                      {/* Chat Input Area */}
                       <form
                         onSubmit={handleCreateTicket}
                         className="p-2.5 sm:p-3 bg-white border-t border-gray-200 flex gap-2 items-center shrink-0"
@@ -1414,7 +1434,6 @@ const UserProfile = () => {
         </div>
       </div>
 
-      {/* ================= 📱 MOBILE BOTTOM NAVIGATION BAR ================= */}
       <div className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 shadow-xl z-50 px-2 pb-safe">
         <div className="flex justify-between items-center py-2 max-w-md mx-auto">
           {sidebarTabs.map((tab) => {
@@ -1446,7 +1465,6 @@ const UserProfile = () => {
         </div>
       </div>
 
-      {/* ================= 🔎 MODAL تفاصيل الطلب ================= */}
       <AnimatePresence>
         {selectedOrder && (
           <div className="fixed inset-0 bg-black/60 z-100 flex items-center justify-center p-3 backdrop-blur-xs">
@@ -1523,16 +1541,27 @@ const UserProfile = () => {
                               <h5 className="text-xs font-bold text-gray-800 truncate">
                                 {renderText(item.nameAr || item.nameEn || item.title || item.name)}
                               </h5>
-                              <p className="text-[9px] text-gray-400">
-                                {t.qty}{" "}
-                                {item.isWeightType
-                                  ? `${item.weightGrams}g`
-                                  : item.quantity}
+                              <p className="text-[9px] text-gray-400 flex items-center mt-0.5">
+                                <span>
+                                  {item.unitType === "weight"
+                                    ? `${item.quantity}g`
+                                    : `${item.quantity} ${t.qty}`}
+                                </span>
+                                {/* شارة توضح هل المنتج بسعر العرض أم السعر العادي */}
+                                {item.isOfferItem ? (
+                                  <span className="mx-1.5 ms-1.5 text-[9px] bg-rose-50 text-rose-600 border border-rose-100 px-1.5 py-0.5 rounded-md font-bold">
+                                    {isAr ? "بسعر العرض" : "Offer Price"}
+                                  </span>
+                                ) : (
+                                  <span className="mx-1.5 ms-1.5 text-[9px] bg-gray-50 text-gray-500 border border-gray-200 px-1.5 py-0.5 rounded-md font-bold">
+                                    {isAr ? "السعر العادي" : "Regular Price"}
+                                  </span>
+                                )}
                               </p>
                             </div>
                           </div>
                           <span className="text-xs font-black text-green-600 shrink-0">
-                            {renderText(item.totalPrice || item.price || item.currentPrice)} EGP
+                            {renderText(item.price || item.totalPrice || item.currentPrice)} EGP
                           </span>
                         </div>
                       ))}
@@ -1579,7 +1608,6 @@ const UserProfile = () => {
         )}
       </AnimatePresence>
 
-      {/* ================= 📩 MODAL نافذة المراسلة الفورية بخصوص الطلبات ================= */}
       <AnimatePresence>
         {isMessageModalOpen && (
           <div className="fixed inset-0 bg-black/60 z-110 flex items-center justify-center p-3 backdrop-blur-xs">

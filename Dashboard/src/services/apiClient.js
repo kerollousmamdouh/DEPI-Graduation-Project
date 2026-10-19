@@ -1,71 +1,48 @@
 import axios from "axios";
 
-// 1. تحديد الـ Base URL من الـ env أو الافتراضي
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
-// 2. إنشاء Instance مخصص من Axios
 export const apiClient = axios.create({
   baseURL: BASE_URL,
-  timeout: 10000, // لو الـ Request أخد أكتر من 10 ثواني يفصل عشان ما يعلقش الصفحة
+  timeout: 10000,
+  withCredentials: true, // send httpOnly cookies cross-origin
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// 3. الـ Request Interceptor: إضافة الـ Token تلقائياً قبل ما أي Request يخرج
-apiClient.interceptors.request.use(
-  (config) => {
-    const stored = localStorage.getItem("currentUser");
-    let token = null;
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        token = parsed.token;
-      } catch { /* ignore */ }
-    }
-    if (!token) {
-      token = localStorage.getItem("dealora-auth-token");
-    }
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// 4. الـ Response Interceptor: معالجة الأخطاء بشكل مركزي (Global Error Handling)
+// Response interceptor: centralised error handling
 apiClient.interceptors.response.use(
-  (response) => {
-    // لو الـ Response تمام، هنرجع الـ data اللي جواه علطول عشان نسهل الشغل في الـ services
-    return response.data;
-  },
+  (response) => response.data,
   (error) => {
-    // هنا بنهندل المشاكل المشهورة زي الـ 401 (الـ Token انتهى أو مش صالح)
     if (error.response) {
       const status = error.response.status;
       const serverMessage = error.response.data?.message || error.response.data?.error;
 
       if (status === 401) {
-        console.warn("Unauthorized! Redirecting to login...");
         localStorage.removeItem("currentUser");
-        localStorage.removeItem("dealora-auth-token");
-        window.location.href = "/login";
+        // Do NOT redirect here — AuthContext handles it gracefully.
+        // Redirecting here causes an infinite loop on page load.
       }
 
-      // بنرمي الـ Error النضيف اللي جاي من الـ Back عشان الـ Hook يلقطه
-      return Promise.reject(new Error(serverMessage || `API Error ${status}`));
+      const apiError = new Error(serverMessage || `API Error ${status}`);
+      apiError.status = status;
+
+      // 403 means the UI let someone attempt something they don't have
+      // permission for (e.g. a direct URL visit that bypassed a disabled
+      // button). This should never surface as a raw "Access denied" error
+      // message — components should check `error.status === 403` and show
+      // a forbidden/blocked state (or just redirect back) instead of an
+      // error toast/banner.
+      apiError.isForbidden = status === 403;
+
+      return Promise.reject(apiError);
     } else if (error.request) {
-      // الـ Request طلع بس مفيش رد من السيرفر (مشكلة شبكة مثلاً)
-      return Promise.reject(new Error("لا يوجد استجابة من السيرفر، يرجى التحقق من اتصال الإنترنت"));
+      return Promise.reject(new Error("No response from server. Check your internet connection."));
     } else {
-      // خطأ تاني خالص في السيستم
       return Promise.reject(new Error(error.message));
     }
   }
 );
 
-// رابط المتجر الافتراضي
 export const STOREFRONT_URL = import.meta.env.VITE_STOREFRONT_URL || "/";

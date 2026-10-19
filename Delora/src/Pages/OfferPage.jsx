@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useRef, useState, useContext } from "react";
 import { Link } from "react-router-dom";
-import { SiteContext } from "../Store/SiteContext"; // 📥 إدخال الـ Context بتاعك
+import { SiteContext } from "../Store/SiteContext";
 import ProductCard from "../Components/ProductUI/SmartProductCard";
 import { ArrowRight, Tag, Clock, Package, SlidersHorizontal } from "lucide-react";
 
@@ -16,15 +16,12 @@ function OfferPage({
   const isArabic = lang === "ar";
   const topRef = useRef(null);
   
-  // حالات الفلترة الحالية
-  const [activeTab, setActiveTab] = useState("all"); // 'all' | 'stock' | 'time'
+  const [activeTab, setActiveTab] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [timeFilter, setTimeFilter] = useState("all"); // 'all' | 'today' | 'week' | 'month'
+  const [timeFilter, setTimeFilter] = useState("all");
 
-  // 📥 سحب البيانات الحية من الـ Context بدلاً من الملفات الثابتة
   const { adminData } = useContext(SiteContext);
 
-  // 🛡️ تغليف الـ initialization في useMemo لحماية الـ References ومنع الـ Warnings
   const categories = useMemo(() => adminData?.categories || [], [adminData?.categories]);
   const products = useMemo(() => adminData?.products || [], [adminData?.products]);
 
@@ -45,25 +42,39 @@ function OfferPage({
   const activeOfferCategories = useMemo(() => {
     const now = new Date();
     
-    // الحصول على معرفات الأقسام (categoryIds) للمنتجات التي تحتوي على عروض فقط
     const activeCatIds = products
       .filter((p) => {
+        // إخفاء المنتج فوراً إذا كان مضافاً للسلة
+        const isInCart = cartItems.some((item) => item.productId === p.id || item.id === p.id);
+        if (isInCart) return false;
+
+        // قراءة المتغيرات بصيغ مختلفة لضمان التوافق مع الباك إند
         const price = Number(p.price || 0);
-        const offerPrice = Number(p.offerPrice || 0);
+        const offerPrice = Number(p.offerPrice || p.discount_price || p.discountPrice || 0);
+        const oldPrice = Number(p.oldPrice || p.old_price || 0);
+
         const hasValidOfferPrice = offerPrice > 0 && price > offerPrice;
-        const isOfferTimeValid = !p.offerExpiresAt || now < new Date(p.offerExpiresAt);
+        const expiryDate = p.offerExpiresAt || p.offer_end_at || p.offerEndAt;
+        const isOfferTimeValid = !expiryDate || now < new Date(expiryDate);
+        
         const hasValidOffer = hasValidOfferPrice && isOfferTimeValid;
+        const hasOldPrice = oldPrice > price;
 
-        const hasOldPrice = Number(p.oldPrice || 0) > price;
-        const isMarked = p.isOffer === true || p.isSale === true;
+        // التحقق الآمن من كمية العرض: لا نخفي المنتج إلا إذا كانت الكمية محددة فعلاً وتساوي 0
+        const isStockOutOffer = p.offerUntilStockOut || p.offer_until_stock_out;
+        const stockRemaining = p.offerStockRemaining ?? p.offer_stock_remaining;
+        
+        if (isStockOutOffer && stockRemaining !== undefined && Number(stockRemaining) <= 0) {
+            return false;
+        }
 
-        return hasValidOffer || hasOldPrice || isMarked;
+        // إخفاء تلقائي بمجرد انتهاء العرض وحذف السعر المخفض
+        return hasValidOffer || hasOldPrice;
       })
       .map((p) => p.categoryId);
 
-    // تصفية مصفوفة الأقسام الأصلية لإبقاء الأقسام المتواجدة في العروض فقط
     return categories.filter((cat) => activeCatIds.includes(cat.id));
-  }, [products, categories]); // 👈 تحديث الـ dependencies بناءً على الـ useMemos الثابتة
+  }, [products, categories, cartItems]); // تمت إضافة cartItems للـ dependencies
 
   // 2️⃣ حساب المنتجات المعروضة بناءً على الفلاتر المختارة والبحث
   const offerProducts = useMemo(() => {
@@ -71,32 +82,42 @@ function OfferPage({
 
     return products
       .filter((p) => {
-        // التحقق الأساسي من وجود عرض صالح
+        // إخفاء المنتج فوراً إذا كان مضافاً للسلة
+        const isInCart = cartItems.some((item) => item.productId === p.id || item.id === p.id);
+        if (isInCart) return false;
+
         const price = Number(p.price || 0);
-        const offerPrice = Number(p.offerPrice || 0);
+        const offerPrice = Number(p.offerPrice || p.discount_price || p.discountPrice || 0);
+        const oldPrice = Number(p.oldPrice || p.old_price || 0);
+
         const hasValidOfferPrice = offerPrice > 0 && price > offerPrice;
-
-        const isOfferTimeValid = !p.offerExpiresAt || now < new Date(p.offerExpiresAt);
+        const expiryDate = p.offerExpiresAt || p.offer_end_at || p.offerEndAt;
+        const isOfferTimeValid = !expiryDate || now < new Date(expiryDate);
+        
         const hasValidOffer = hasValidOfferPrice && isOfferTimeValid;
+        const hasOldPrice = oldPrice > price;
 
-        const hasOldPrice = Number(p.oldPrice || 0) > price;
-        const isMarked = p.isOffer === true || p.isSale === true;
+        const isStockOutOffer = p.offerUntilStockOut || p.offer_until_stock_out;
+        const stockRemaining = p.offerStockRemaining ?? p.offer_stock_remaining;
+        
+        // التحقق الآمن: إذا وصلت الكمية المخصصة للعرض للصفر، يختفي فوراً
+        if (isStockOutOffer && stockRemaining !== undefined && Number(stockRemaining) <= 0) {
+            return false;
+        }
 
-        const isAnyOffer = hasValidOffer || hasOldPrice || isMarked;
+        const isAnyOffer = hasValidOffer || hasOldPrice;
         if (!isAnyOffer) return false;
 
-        // الفلترة حسب الأقسام (Category Filter)
         if (selectedCategory !== "all" && p.categoryId !== parseInt(selectedCategory)) {
           return false;
         }
 
-        // الفلترة الأساسية للـ Tabs (كمية أم وقت)
-        if (activeTab === "stock") return !p.offerExpiresAt;
+        if (activeTab === "stock") return !expiryDate;
         if (activeTab === "time") {
-          if (!p.offerExpiresAt) return false;
+          if (!expiryDate) return false;
           
-          const expiryDate = new Date(p.offerExpiresAt);
-          const diffInMs = expiryDate - now;
+          const expDateObj = new Date(expiryDate);
+          const diffInMs = expDateObj - now;
           const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
 
           if (timeFilter === "today") return diffInDays <= 1;
@@ -108,15 +129,14 @@ function OfferPage({
         return true;
       })
       .filter((p) => {
-        // فلترة البحث (ثنائية اللغة)
         const cleanedQuery = query ? query.trim().toLowerCase() : "";
         if (cleanedQuery === "") return true;
 
-        const nameAr = p?.name?.ar?.toLowerCase() || "";
-        const nameEn = p?.name?.en?.toLowerCase() || "";
+        const nameAr = p?.name?.ar?.toLowerCase() || p?.name_ar?.toLowerCase() || "";
+        const nameEn = p?.name?.en?.toLowerCase() || p?.name_en?.toLowerCase() || "";
         return nameAr.includes(cleanedQuery) || nameEn.includes(cleanedQuery);
       });
-  }, [query, activeTab, selectedCategory, timeFilter, products]); // 👈 إضافة products للـ dependencies لمنع الـ Warnings
+  }, [query, activeTab, selectedCategory, timeFilter, products, cartItems]); // تمت إضافة cartItems للـ dependencies
 
   useEffect(() => {
     if (topRef.current) {
@@ -132,7 +152,6 @@ function OfferPage({
     >
       <div className="max-w-350 mx-auto px-4 sm:px-6">
         
-        {/* 🏢 الهيدر العلوي وعداد المنتجات */}
         <div className="bg-white rounded-3xl p-5 mb-6 border border-slate-100 shadow-2xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
             <Link
@@ -159,10 +178,8 @@ function OfferPage({
           </div>
         </div>
 
-        {/* 🗂️ التقسيم الرئيسي لصفحة العروض */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
           
-          {/* البار الجانبي (فلاتر الأقسام النشطة فقط للشاشات الكبيرة) */}
           <div className="lg:col-span-1 bg-white border border-slate-100 rounded-3xl p-5 shadow-2xs sticky top-24 hidden lg:block">
             <h3 className="text-xs font-black text-slate-700 mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
               <SlidersHorizontal size={14} className="text-[#00a650]" />
@@ -187,12 +204,9 @@ function OfferPage({
             </div>
           </div>
 
-          {/* محتوى العروض الرئيسي والتبويبات */}
           <div className="lg:col-span-3">
             
-            {/* أزرار الفلترة العلوية (نوع العرض) + فلاتر الأقسام السريعة للموبايل */}
             <div className="flex flex-col gap-3 mb-6">
-              {/* أنواع العروض الرئيسية */}
               <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
                 {["all", "stock", "time"].map((tab) => (
                   <button
@@ -216,7 +230,6 @@ function OfferPage({
                 ))}
               </div>
 
-              {/* ⏳ خيارات تصفية الوقت المتقدمة */}
               {activeTab === "time" && (
                 <div className="flex items-center gap-2 bg-green-50/60 border border-green-100/50 p-2 rounded-xl mb-4 overflow-x-auto scrollbar-none animate-[fadeUp_0.15s_ease-out]">
                   <span className="text-[10px] font-black text-slate-400 whitespace-nowrap px-1">{isArabic ? "الوقت المتبقي:" : "Time Left:"}</span>
@@ -243,7 +256,6 @@ function OfferPage({
                 </div>
               )}
 
-              {/* 📱 أقسام الموبايل السريعة النشطة فقط (تختفي في الـ Desktop) */}
               <div className="lg:hidden flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-t border-slate-100 pt-3">
                 <button
                   onClick={() => setSelectedCategory("all")}
@@ -263,7 +275,6 @@ function OfferPage({
               </div>
             </div>
 
-            {/* 🛍️ شبكة المنتجات */}
             {offerProducts.length > 0 ? (
               <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5">
                 {offerProducts.map((product) => (
@@ -272,7 +283,7 @@ function OfferPage({
                     product={product}
                     category={categories.find((c) => c.id === product.categoryId)}
                     lang={lang}
-onAddToWishlist={() => addToWishlist(product)}
+                    onAddToWishlist={() => addToWishlist(product)}
                     isInWishlist={wishlistItems.some((i) => i.id === product.id)}
                     onAddToCart={addToCart}
                     cartItems={cartItems}

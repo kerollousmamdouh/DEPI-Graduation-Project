@@ -25,11 +25,17 @@ export const register = async (req, res) => {
     }
 
     try {
-        const [existingUser] = await db.query('SELECT id FROM users WHERE email = ? OR phone = ?', [email, phone]);
+        const [existingUser] = await db.query('SELECT id, is_verified FROM users WHERE email = ? OR phone = ?', [email, phone]);
         if (existingUser.length > 0) {
-            return res.status(400).json({ 
-                message: lang === 'en' ? 'Email or Phone number is already registered.' : 'هذا البريد الإلكتروني أو رقم الهاتف مسجل بالفعل.' 
-            });
+            // Allow re-registration if the existing user is unverified (they haven't completed signup yet)
+            const isVerified = existingUser[0].is_verified;
+            if (isVerified) {
+                return res.status(400).json({ 
+                    message: lang === 'en' ? 'Email or Phone number is already registered.' : 'هذا البريد الإلكتروني أو رقم الهاتف مسجل بالفعل.' 
+                });
+            }
+            // Unverified user exists — delete the old record so they can re-enter their data
+            await db.query('DELETE FROM users WHERE id = ?', [existingUser[0].id]);
         }
 
         const salt = await bcrypt.genSalt(10);
@@ -100,7 +106,7 @@ export const verifyEmail = async (req, res) => {
     }
 
     try {
-        const [user] = await db.query('SELECT verification_code, code_expires_at FROM users WHERE email = ?', [email]);
+        const [user] = await db.query('SELECT id, name, phone, verification_code, code_expires_at FROM users WHERE email = ?', [email]);
         if (user.length === 0) {
             return res.status(404).json({ 
                 message: lang === 'en' ? 'User not found.' : 'المستخدم غير موجود.' 
@@ -119,6 +125,48 @@ export const verifyEmail = async (req, res) => {
             'UPDATE users SET is_verified = TRUE, verification_code = NULL, code_expires_at = NULL WHERE email = ?',
             [email]
         );
+
+        // Auto-create an open support ticket so the admin can immediately find and message this customer
+        try {
+            const ticketId = `TKT-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+            const customerName = user[0].name || 'Customer';
+            const customerPhone = user[0].phone || null;
+
+            // Check if a ticket already exists for this email (e.g. from a race condition)
+            const [existing] = await db.query(
+                'SELECT id FROM contacts WHERE email = ? AND ticket_id IS NOT NULL LIMIT 1',
+                [email]
+            );
+
+            if (existing.length === 0) {
+                await db.query(
+                    `INSERT INTO contacts (name, email, phone, subject, message, type, ticket_id, status, is_read) 
+                     VALUES (?, ?, ?, ?, ?, 'support', ?, 'OPEN', TRUE)`,
+                    [
+                        customerName,
+                        email,
+                        customerPhone,
+                        'Account Registration',
+                        `Welcome to Delora, ${customerName}! This chat is now available for you. Feel free to reach out anytime.`,
+                        ticketId
+                    ]
+                );
+
+                // Auto-send first message from customer to admin (WhatsApp-style)
+                await db.query(
+                    `INSERT INTO chat_messages (ticket_id, sender_type, sender_name, message_text, is_read) 
+                     VALUES (?, 'user', ?, ?, FALSE)`,
+                    [
+                        ticketId,
+                        customerName,
+                        `Hello! I'm ${customerName}. I just registered on Delora. I have a question.`
+                    ]
+                ).catch(() => {});
+            }
+        } catch (ticketErr) {
+            // Non-critical: don't fail registration if ticket creation fails
+            console.error('Auto-ticket creation failed:', ticketErr.message);
+        }
 
         res.status(200).json({ 
             message: lang === 'en' ? 'Your account has been verified successfully! You can log in now. 🚀🛒' : 'تم تفعيل حسابك بنجاح! يمكنك الآن تسجيل الدخول 🚀🛒' 
@@ -319,8 +367,8 @@ export const login = async (req, res) => {
 
     try {
         const [users] = await db.query(
-            'SELECT * FROM users WHERE username = ? OR email = ? OR phone = ?', 
-            [identifier, identifier, identifier]
+            'SELECT * FROM users WHERE username = ? OR email = ? OR phone = ? OR name = ?', 
+            [identifier, identifier, identifier, identifier]
         );
         if (users.length === 0) {
             return res.status(400).json({ 
@@ -336,6 +384,13 @@ export const login = async (req, res) => {
             });
         }
 
+        // Check if user is blocked (is_active = FALSE)
+        if (user.is_active === false || user.is_active === 0) {
+            return res.status(403).json({ 
+                message: lang === 'en' ? 'Your account has been blocked. Please contact support.' : 'تم حظر حسابك. يرجى التواصل مع الدعم الفني.' 
+            });
+        }
+
         const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) {
             return res.status(400).json({ 
@@ -348,7 +403,13 @@ export const login = async (req, res) => {
         res.status(200).json({
             message: lang === 'en' ? 'Logged in successfully!' : 'تم تسجيل الدخول بنجاح!',
             token,
-            user: { id: user.id, name: user.name, username: user.username, email: user.email, phone: user.phone, role: user.role, photo_url: user.photo_url }
+            user: { 
+                id: user.id, name: user.name, username: user.username, email: user.email, 
+                phone: user.phone, role: user.role, photo_url: user.photo_url,
+                jobTitle: user.job_title || null,
+                avatar: user.avatar_url || user.photo_url || null,
+                permissions: typeof user.permissions === 'string' ? JSON.parse(user.permissions) : (user.permissions || []),
+            }
         });
     } catch (error) {
         res.status(500).json({ 
@@ -364,7 +425,7 @@ export const getProfile = async (req, res) => {
     const lang = req.lang;
     try {
         const [users] = await db.query(
-            'SELECT id, name, email, phone, second_phone, gender, photo_url, role, country, governorate, zip_code, created_at FROM users WHERE id = ?',
+            'SELECT id, name, email, phone, second_phone, gender, photo_url, role, country, governorate, zip_code, job_title, avatar_url, permissions, created_at FROM users WHERE id = ?',
             [userId]
         );
         if (users.length === 0) {
@@ -372,7 +433,14 @@ export const getProfile = async (req, res) => {
                 message: lang === 'en' ? 'User not found.' : 'المستخدم غير موجود.' 
             });
         }
-        res.status(200).json(users[0]);
+        const u = users[0];
+        res.status(200).json({
+            ...u,
+            fullName: u.name,
+            jobTitle: u.job_title || null,
+            avatar: u.avatar_url || u.photo_url || null,
+            permissions: typeof u.permissions === 'string' ? JSON.parse(u.permissions) : (u.permissions || []),
+        });
     } catch (error) {
         res.status(500).json({ 
             message: lang === 'en' ? 'Server error.' : 'حدث خطأ في السيرفر.', 
@@ -462,4 +530,149 @@ export const changePassword = async (req, res) => {
             error: error.message 
         });
     }
+};
+
+// =============================================
+// DASHBOARD-ONLY AUTH (separate from storefront)
+// Uses team_members table — completely isolated.
+// Token stored in httpOnly cookie.
+// =============================================
+
+const COOKIE_NAME = 'delora_dash_token';
+const COOKIE_OPTIONS = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+};
+
+// Dashboard Login — checks team_members table only
+export const dashboardLogin = async (req, res) => {
+    const { email, password } = req.body;
+    const identifier = email || '';
+    const lang = req.lang;
+
+    if (!identifier || !password) {
+        return res.status(400).json({
+            message: lang === 'en' ? 'Email/username and password are required.' : 'البريد الإلكتروني أو اسم المستخدم وكلمة المرور مطلوبان.'
+        });
+    }
+
+    try {
+        const [members] = await db.query(
+            'SELECT * FROM team_members WHERE email = ? OR name = ? OR phone = ?',
+            [identifier, identifier, identifier]
+        );
+        if (members.length === 0) {
+            return res.status(401).json({
+                message: lang === 'en' ? 'Incorrect email or password.' : 'البريد الإلكتروني أو كلمة المرور غير صحيحة.'
+            });
+        }
+
+        const member = members[0];
+
+        if (!member.is_active) {
+            return res.status(403).json({
+                message: lang === 'en' ? 'Your account has been disabled. Contact the owner.' : 'تم تعطيل حسابك. تواصل مع المالك.'
+            });
+        }
+
+        const isMatch = await bcrypt.compare(password, member.password_hash);
+        if (!isMatch) {
+            return res.status(401).json({
+                message: lang === 'en' ? 'Incorrect email or password.' : 'البريد الإلكتروني أو كلمة المرور غير صحيحة.'
+            });
+        }
+
+        // Owner (job_title='Owner') gets super_admin role so they can manage team members
+        const memberRole = member.job_title === 'Owner' ? 'super_admin' : 'team_member';
+
+        // JWT with source='team' to distinguish from storefront tokens
+        const token = jwt.sign(
+            { id: member.id, role: memberRole, source: 'team' },
+            process.env.JWT_SECRET,
+            { expiresIn: '1d' }
+        );
+
+        // Set httpOnly cookie — never exposed to JavaScript
+        res.cookie(COOKIE_NAME, token, COOKIE_OPTIONS);
+
+        const permissions = typeof member.permissions === 'string'
+            ? JSON.parse(member.permissions)
+            : (member.permissions || []);
+
+        res.status(200).json({
+            message: lang === 'en' ? 'Logged in successfully!' : 'تم تسجيل الدخول بنجاح!',
+            token, // also return token in body for Authorization header fallback
+            user: {
+                id: member.id,
+                fullName: member.name,
+                name: member.name,
+                email: member.email,
+                phone: member.phone,
+                jobTitle: member.job_title || null,
+                avatar: member.avatar_url || null,
+                salary: member.salary || null,
+                role: memberRole,
+                permissions,
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: lang === 'en' ? 'Server error.' : 'حدث خطأ في السيرفر.',
+            error: error.message
+        });
+    }
+};
+
+// Dashboard Profile — reads from team_members table
+export const dashboardProfile = async (req, res) => {
+    const lang = req.lang;
+
+    // Only allow team_member tokens
+    if (req.user?.source !== 'team') {
+        return res.status(403).json({
+            message: lang === 'en' ? 'This endpoint is for dashboard members only.' : 'هذا المسار مخصص لأعضاء لوحة التحكم فقط.'
+        });
+    }
+
+    try {
+        const [members] = await db.query(
+            'SELECT id, name, email, phone, job_title, avatar_url, salary, is_active, permissions, created_at FROM team_members WHERE id = ?',
+            [req.user.id]
+        );
+        if (members.length === 0) {
+            return res.status(404).json({
+                message: lang === 'en' ? 'Member not found.' : 'العضو غير موجود.'
+            });
+        }
+        const m = members[0];
+        const memberRole = m.job_title === 'Owner' ? 'super_admin' : 'team_member';
+        res.status(200).json({
+            id: m.id,
+            fullName: m.name,
+            name: m.name,
+            email: m.email,
+            phone: m.phone,
+            jobTitle: m.job_title || null,
+            avatar: m.avatar_url || null,
+            salary: m.salary || null,
+            role: memberRole,
+            is_active: m.is_active,
+            permissions: typeof m.permissions === 'string' ? JSON.parse(m.permissions) : (m.permissions || []),
+            created_at: m.created_at,
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: lang === 'en' ? 'Server error.' : 'حدث خطأ في السيرفر.',
+            error: error.message
+        });
+    }
+};
+
+// Dashboard Logout — clears the httpOnly cookie
+export const dashboardLogout = (req, res) => {
+    res.clearCookie(COOKIE_NAME, { path: '/' });
+    res.status(200).json({ message: 'Logged out.' });
 };

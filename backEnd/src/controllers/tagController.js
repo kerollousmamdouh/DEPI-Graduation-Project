@@ -19,8 +19,7 @@ export const getProductsByTag = async (req, res) => {
         const [products] = await db.query(
             `SELECT p.*,
                 CASE 
-                    WHEN p.discount_price IS NOT NULL 
-                         AND (p.offer_until_stock_out = TRUE OR (p.offer_start_at <= NOW() AND p.offer_end_at >= NOW()))
+                    WHEN p.discount_price IS NOT NULL AND p.offer_end_at >= NOW()
                     THEN p.discount_price 
                     ELSE p.price 
                 END AS current_price

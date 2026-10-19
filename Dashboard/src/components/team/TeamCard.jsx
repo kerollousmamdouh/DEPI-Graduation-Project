@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import HasPermission from "./HasPermission";
 
 const EditIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
@@ -23,13 +24,15 @@ export default function TeamCard({ id, name, role, email, image }) {
 
   return (
     <div className="relative bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col items-center text-center transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
-      <button
-        onClick={() => navigate(`/team/edit/${id}`)}
-        aria-label={`Edit ${name}`}
-        className="absolute top-4 ltr:right-4 rtl:left-4 w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-blue-500 transition-colors"
-      >
-        <EditIcon />
-      </button>
+      <HasPermission resource="team" action="edit" disableInstead>
+        <button
+          onClick={() => navigate(`/team/edit/${id}`)}
+          aria-label={`Edit ${name}`}
+          className="absolute top-4 ltr:right-4 rtl:left-4 w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-blue-500 transition-colors"
+        >
+          <EditIcon />
+        </button>
+      </HasPermission>
 
       <img
         src={image}

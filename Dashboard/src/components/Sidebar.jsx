@@ -68,23 +68,30 @@ export default function Sidebar({ open = false, onClose = () => {} }) {
 
   useEffect(() => {
     const fetchCounts = async () => {
-      try {
-        const [ordersRes, complaintsRes] = await Promise.all([
-          apiClient.get("/orders").catch(() => []),
-          apiClient.get("/complaints").catch(() => []),
-        ]);
-        const orders = Array.isArray(ordersRes) ? ordersRes : [];
-        const complaints = Array.isArray(complaintsRes) ? complaintsRes : [];
-        setPendingOrdersCount(orders.filter((o) => String(o.status).toUpperCase() === "PENDING").length);
-        setOpenComplaintsCount(complaints.filter((c) => c.status === "OPEN" || c.status === "REPLIED").length);
-      } catch {
-        // silently ignore
+      const requests = [];
+      if (user && hasPermission("orders")) {
+        requests.push(
+          apiClient.get("/admin/orders").then(r => {
+            const arr = Array.isArray(r) ? r : [];
+            setPendingOrdersCount(arr.filter(o => String(o.status).toUpperCase() === "PENDING").length);
+          }).catch(() => {})
+        );
       }
+      if (user && hasPermission("complaints")) {
+        requests.push(
+          apiClient.get("/complaints").then(r => {
+            const arr = Array.isArray(r) ? r : [];
+            setOpenComplaintsCount(arr.filter(c => c.status === "OPEN").length);
+          }).catch(() => {})
+        );
+      }
+      await Promise.all(requests);
     };
+    if (!user) return;
     fetchCounts();
     const interval = setInterval(fetchCounts, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   const hasPermission = (pageId) => {
     if (!user) return false;

@@ -1,12 +1,26 @@
 // src/controllers/notificationController.js
 import db from '../config/db.js';
 
-const toMySQLDatetime = (isoString) => {
-    if (!isoString) return null;
-    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(isoString)) return isoString;
-    const date = new Date(isoString);
-    if (isNaN(date.getTime())) return null;
-    return date.toISOString().slice(0, 19).replace('T', ' ');
+const toMySQLDatetime = (val) => {
+    if (!val) return null;
+    if (val instanceof Date) {
+        const y = val.getFullYear();
+        const m = String(val.getMonth() + 1).padStart(2, '0');
+        const d = String(val.getDate()).padStart(2, '0');
+        const h = String(val.getHours()).padStart(2, '0');
+        const mi = String(val.getMinutes()).padStart(2, '0');
+        const s = String(val.getSeconds()).padStart(2, '0');
+        return `${y}-${m}-${d} ${h}:${mi}:${s}`;
+    }
+    if (typeof val !== 'string') return null;
+    let str = val.trim();
+    if (str.includes('T')) {
+        str = str.replace('T', ' ');
+    }
+    str = str.split('.')[0];
+    str = str.replace('Z', '');
+    str = str.replace(/[+-]\d{2}:?\d{2}$/, '');
+    return str.trim() || null;
 };
 
 // 1. جلب الإشعارات النشطة حالياً (للـ Frontend العام للعملاء) حسب اللغة الحالية

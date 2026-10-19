@@ -16,8 +16,8 @@ router.get('/', getAllProducts);
 router.get('/:id', getProductById);
 
 // 🔒 مسارات إدارية محمية لإضافة وتعديل وحذف المنتجات
-router.post('/', protect, authorizeRoles('super_admin', 'store_manager'), createProduct);
-router.put('/:id', protect, authorizeRoles('super_admin', 'store_manager'), updateProduct);
-router.delete('/:id', protect, authorizeRoles('super_admin', 'store_manager'), deleteProduct);
+router.post('/', protect, authorizeRoles('super_admin', 'store_manager', 'team_member'), createProduct);
+router.put('/:id', protect, authorizeRoles('super_admin', 'store_manager', 'team_member'), updateProduct);
+router.delete('/:id', protect, authorizeRoles('super_admin', 'store_manager', 'team_member'), deleteProduct);
 
 export default router;

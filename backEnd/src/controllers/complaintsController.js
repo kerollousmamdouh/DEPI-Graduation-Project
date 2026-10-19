@@ -19,10 +19,12 @@ const ensureSchema = async () => {
         message_text TEXT NULL,
         file_url TEXT NULL,
         is_read BOOLEAN DEFAULT FALSE,
+        is_deleted BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_ticket_id (ticket_id),
         INDEX idx_sender (sender_type)
     )`).catch(() => {});
+    await db.query("ALTER TABLE chat_messages ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE AFTER is_read").catch(() => {});
 };
 ensureSchema();
 
@@ -569,12 +571,31 @@ export const editChatMessage = async (req, res) => {
     }
 };
 
-// 10. Delete message (blocked — WhatsApp-style)
+// 10. Delete message — soft delete (WhatsApp-style: show "[deleted]" placeholder)
 export const deleteChatMessage = async (req, res) => {
+    const { messageId } = req.params;
     const lang = req.lang;
-    return res.status(403).json({ 
-        message: lang === 'en' 
-            ? 'Message deletion is not allowed. Chat history is preserved permanently.' 
-            : 'حذف الرسالة غير مسموح. يتم الاحتفاظ بسجل المحادثة بشكل دائم.' 
-    });
+
+    try {
+        const [existing] = await db.query('SELECT id, sender_type, created_at FROM chat_messages WHERE id = ?', [messageId]);
+        if (existing.length === 0) {
+            return res.status(404).json({
+                message: lang === 'en' ? 'Message not found.' : 'الرسالة غير موجودة.'
+            });
+        }
+
+        await db.query(
+            'UPDATE chat_messages SET is_deleted = TRUE, message_text = ?, file_url = NULL WHERE id = ?',
+            ['[deleted]', messageId]
+        );
+
+        res.status(200).json({
+            message: lang === 'en' ? 'Message deleted.' : 'تم حذف الرسالة.'
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: lang === 'en' ? 'Server error.' : 'حدث خطأ في السيرفر',
+            error: error.message
+        });
+    }
 };

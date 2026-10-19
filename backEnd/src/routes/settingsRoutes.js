@@ -10,6 +10,6 @@ const router = express.Router();
 router.get('/', getStoreSettings);
 
 // 2. تحديث إعداد معين (محمي للأدمن فقط)
-router.put('/', protect, authorizeRoles('admin'), updateStoreSetting);
+router.put('/', protect, authorizeRoles('super_admin', 'store_manager', 'team_member'), updateStoreSetting);
 
 export default router;

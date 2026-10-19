@@ -55,7 +55,6 @@ const OrderDetails = () => {
     return isAr ? textObj.ar || textObj.en || "" : textObj.en || textObj.ar || "";
   };
 
-  // نداء مباشر للحالات المسطحة في ملف الترجمة
   const getStatusTranslation = (status) => {
     const s = String(status).toLowerCase();
     return t(s) || status;
@@ -82,9 +81,9 @@ const OrderDetails = () => {
     setIsStatusOpen(false);
     try {
       await updateStatus(newStatus);
-      setInfoMessage({ text: t("statusUpdated"), isError: false }); // تم حذف orders.
+      setInfoMessage({ text: t("statusUpdated"), isError: false });
     } catch (err) {
-      setInfoMessage({ text: err.message || t("statusUpdateFailed"), isError: true }); // تم حذف orders.
+      setInfoMessage({ text: err.message || t("statusUpdateFailed"), isError: true });
     } finally {
       setTimeout(() => setInfoMessage({ text: "", isError: false }), 4000);
     }
@@ -112,7 +111,7 @@ const OrderDetails = () => {
             </button>
           )}
           <button onClick={() => navigate("/orders")} className="rounded-xl bg-green-600 px-5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-green-700 transition-colors cursor-pointer">
-            {t("back")} {/* تم حذف orders. */}
+            {t("back")} 
           </button>
         </div>
       </div>
@@ -132,7 +131,6 @@ const OrderDetails = () => {
 
   return (
     <div className="space-y-5 max-w-5xl mx-auto px-2 pb-12 text-start" dir={isAr ? "rtl" : "ltr"}>
-      {/* Toast Notification */}
       <AnimatePresence>
         {infoMessage.text && (
           <motion.div
@@ -148,7 +146,6 @@ const OrderDetails = () => {
         )}
       </AnimatePresence>
 
-      {/* Pending Support Alert */}
       {hasPendingCustomerMessage && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -166,24 +163,23 @@ const OrderDetails = () => {
               </div>
               <div>
                 <h4 className="text-xs font-black text-amber-950 flex items-center gap-2">
-                  {t("pendingNotifTitle")} {/* تم حذف orders. */}
+                  {t("pendingNotifTitle")} 
                   <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">Pending Reply</span>
                 </h4>
-                <p className="mt-0.5 text-xs text-amber-800/80 leading-relaxed max-w-2xl font-medium">{t("pendingNotifBody")}</p> {/* تم حذف orders. */}
+                <p className="mt-0.5 text-xs text-amber-800/80 leading-relaxed max-w-2xl font-medium">{t("pendingNotifBody")}</p> 
               </div>
             </div>
             <button
               onClick={() => navigate(`/complaints?orderId=${order.id}`)}
               className="inline-flex items-center justify-center gap-2 shrink-0 rounded-xl bg-amber-600 px-4 py-2.5 text-xs font-extrabold text-white shadow-xs hover:bg-amber-700 transition-all cursor-pointer group"
             >
-              <span>{t("openChatBtn")}</span> {/* تم حذف orders. */}
+              <span>{t("openChatBtn")}</span> 
               <ExternalLink size={14} className="transition-transform group-hover:translate-x-0.5" />
             </button>
           </div>
         </motion.div>
       )}
 
-      {/* Top Header Section */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <button
@@ -191,7 +187,7 @@ const OrderDetails = () => {
             className="mb-2 inline-flex items-center gap-1.5 text-xs font-bold text-green-600 hover:opacity-80 cursor-pointer"
           >
             {isAr ? <ArrowRight size={14} /> : <ArrowLeft size={14} />}
-            {t("back")} {/* تم حذف orders. */}
+            {t("back")} 
           </button>
           <h1 className="text-xl sm:text-2xl font-black text-gray-900">
             {t("order")} #{renderText(order.id).replace("ORDER-", "")}
@@ -201,7 +197,6 @@ const OrderDetails = () => {
           </p>
         </div>
 
-        {/* Status Dropdown */}
         <div ref={dropdownRef} className="relative z-10 w-full sm:w-52">
           <button
             disabled={isUpdating}
@@ -241,11 +236,8 @@ const OrderDetails = () => {
         </div>
       </div>
 
-      {/* Main Grid structure */}
       <div className="grid gap-5 lg:grid-cols-3">
-        {/* Sidebar Panel */}
         <div className="space-y-5 lg:col-span-1">
-          {/* Customer info card */}
           <div className="rounded-xl border border-gray-200/60 bg-white p-4 shadow-xs">
             <h2 className="mb-3.5 text-[10px] font-black uppercase tracking-wider text-gray-400 border-b border-gray-100 pb-2.5">
               {t("customerInfo")}
@@ -270,7 +262,6 @@ const OrderDetails = () => {
             </div>
           </div>
 
-          {/* Payment panel card */}
           <div className="rounded-xl border border-gray-200/60 bg-white p-4 shadow-xs">
             <h2 className="mb-3.5 text-[10px] font-black uppercase tracking-wider text-gray-400 border-b border-gray-100 pb-2.5">
               {t("paymentDetails")}
@@ -292,7 +283,7 @@ const OrderDetails = () => {
                   {paymentDetails.receiptImage && (
                     <div className="space-y-1 pt-2 border-t border-gray-200">
                       <p className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1">
-                        <Receipt size={11} /> {t("receipt")} {/* تم حذف orders. */}
+                        <Receipt size={11} /> {t("receipt")} 
                       </p>
                       <a
                         href={paymentDetails.receiptImage}
@@ -310,9 +301,7 @@ const OrderDetails = () => {
           </div>
         </div>
 
-        {/* Content Panel */}
         <div className="space-y-5 lg:col-span-2">
-          {/* Products Ordered */}
           <div className="rounded-xl border border-gray-200/60 bg-white p-4 shadow-xs">
             <h2 className="mb-4 text-sm font-black text-gray-900">{t("productsOrdered")}</h2>
             <div className="space-y-2.5">
@@ -326,24 +315,35 @@ const OrderDetails = () => {
                     />
                     <div className="min-w-0">
                       <h3 className="font-bold text-xs text-gray-900 truncate">{renderText(item.nameAr || item.nameEn || item.title || item.name)}</h3>
-                      <p className="text-[10px] font-bold text-gray-400 mt-0.5">
-                        {t("qty")} {item.isWeightType ? `${item.weightGrams}g` : item.quantity} {/* تم حذف orders. */}
-                        {item.isOfferItem && (
-                          <span className="mx-1.5 ms-1.5 text-[9px] bg-rose-50 text-rose-600 border border-rose-100 px-1.5 py-0.5 rounded-md">
-                            Offer
+                      <p className="text-[10px] font-bold text-gray-400 mt-0.5 flex items-center">
+                        <span>
+                          {item.unitType === "weight"
+                            ? `${item.quantity}g`
+                            : `${item.quantity} ${t("qty")}`}
+                        </span>
+                        {item.isOfferItem ? (
+                          <span className="mx-1.5 ms-1.5 text-[9px] bg-rose-50 text-rose-600 border border-rose-100 px-1.5 py-0.5 rounded-md font-bold">
+                            {t("offer") || "Offer Price"}
+                          </span>
+                        ) : (
+                          <span className="mx-1.5 ms-1.5 text-[9px] bg-gray-50 text-gray-500 border border-gray-200 px-1.5 py-0.5 rounded-md font-bold">
+                            {isAr ? "السعر العادي" : "Regular Price"}
                           </span>
                         )}
                       </p>
                     </div>
                   </div>
                   <div className="text-end shrink-0">
-                    <p className="text-xs font-black text-green-600">{renderText(item.totalPrice || item.pricePerUnit || item.price)} EGP</p>
+                    <p className="text-xs font-black text-green-600">
+                      {renderText(
+                        item.totalPrice || item.pricePerUnit || item.price
+                      )} EGP
+                    </p>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Total Block */}
             <div className="mt-5 border-t border-gray-100 pt-5">
               <div className="flex justify-between items-center bg-green-50 p-4 rounded-xl border border-green-100">
                 <span className="text-sm font-black text-gray-900">{t("grandTotal")}</span>
@@ -352,26 +352,25 @@ const OrderDetails = () => {
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             <button
               onClick={() => window.print()}
               className="flex items-center justify-center gap-2 rounded-xl bg-gray-900 px-5 py-3 text-xs font-bold text-white shadow-xs transition-all hover:bg-gray-800 cursor-pointer col-span-1"
             >
-              <Printer size={15} /> <span>{t("print")}</span> {/* تم حذف orders. */}
+              <Printer size={15} /> <span>{t("print")}</span> 
             </button>
             <button
               onClick={() => window.open(`https://wa.me/${String(customerDetails?.phone || "").replace(/\D/g, "")}`, "_blank")}
               className="flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-5 py-3 text-xs font-bold text-white shadow-xs transition-all hover:bg-[#20bd5a] cursor-pointer col-span-1"
             >
-              <MessageCircle size={15} /> <span>{t("whatsapp")}</span> {/* تم حذف orders. */}
+              <MessageCircle size={15} /> <span>{t("whatsapp")}</span> 
             </button>
             {relatedComplaint && (
               <button
                 onClick={() => navigate(`/complaints?orderId=${order.id}`)}
                 className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-xs font-bold text-white shadow-xs transition-all hover:bg-blue-700 cursor-pointer col-span-2 sm:col-span-1"
               >
-                <MessageSquareWarning size={15} /> <span>{t("siteChat")}</span> {/* تم حذف orders. */}
+                <MessageSquareWarning size={15} /> <span>{t("siteChat")}</span> 
               </button>
             )}
           </div>

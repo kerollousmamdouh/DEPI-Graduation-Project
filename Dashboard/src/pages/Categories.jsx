@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useRef } from "react";
 import { 
   Upload, Link as LinkIcon, Check, Search, Plus, Trash2, Edit2, 
-  Eye, EyeOff, SlidersHorizontal, Layers, RefreshCw, X, Scale, Boxes, ChevronDown
+  Eye, EyeOff, SlidersHorizontal, Layers, RefreshCw, X, ChevronDown
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useCategories } from "../Hooks/useCategories";
@@ -28,12 +28,11 @@ const Categories = () => {
   const [deleteCategoryId, setDeleteCategoryId] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
-  const [isUnitDropdownOpen, setIsUnitDropdownOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [imageTab, setImageTab] = useState("file");
   const [submitError, setSubmitError] = useState(null);
 
-  const emptyForm = { nameAr: "", nameEn: "", image: "", imageFile: null, unitType: "weight" };
+  const emptyForm = { nameAr: "", nameEn: "", image: "", imageFile: null };
   const [formData, setFormData] = useState(emptyForm);
 
   // Statistics
@@ -95,7 +94,6 @@ const Categories = () => {
       nameAr: category.nameAr || category.name_ar || "",
       nameEn: category.nameEn || category.name_en || category.name || "",
       image: category.image || "",
-      unitType: category.unitType || category.unit_type || "weight",
     });
     setImageTab(category.image && category.image.startsWith("http") ? "url" : "file");
     setIsModalOpen(true);
@@ -122,8 +120,6 @@ const Categories = () => {
         name_ar: formData.nameAr.trim(),
         name_en: formData.nameEn.trim(),
         name: formData.nameAr.trim() || formData.nameEn.trim(),
-        unitType: formData.unitType,
-        unit_type: formData.unitType,
         image: imageUrl,
       };
 
@@ -313,19 +309,6 @@ const Categories = () => {
                   {category.displayName}
                 </h3>
 
-                <div className="flex items-center justify-between rounded-xl bg-gray-50 p-1.5 sm:p-2 text-[9px] sm:text-xs">
-                  <div className="flex items-center gap-1 text-gray-600 font-bold">
-                    {(category.unitType === "weight" || category.unit_type === "weight") ? (
-                      <Scale size={11} className="text-[rgb(0,166,62)] sm:size-[14px]" />
-                    ) : (
-                      <Boxes size={11} className="text-blue-500" />
-                    )}
-                    <span>
-                      {(category.unitType === "weight" || category.unit_type === "weight") ? t("weight") : t("quantity")}
-                    </span>
-                  </div>
-                </div>
-
                 {/* Actions Buttons - الميزة السحرية: أوبشن الـ Icons للموبايل الصغير والنصوص للـ سمارت فون */}
                 <div className="flex gap-1 text-[10px] sm:text-xs font-bold w-full">
                   <HasPermission resource="categories" action="edit">
@@ -483,52 +466,6 @@ const Categories = () => {
                       <X size={12} />
                     </button>
                   </div>
-                )}
-              </div>
-
-              {/* Selling Unit Dropdown */}
-              <div className="space-y-1.5 relative">
-                <label className="text-xs font-bold text-gray-700 block">{t("productTypeInCategory")}</label>
-                <button
-                  type="button"
-                  onClick={() => setIsUnitDropdownOpen(!isUnitDropdownOpen)}
-                  className="flex w-full items-center justify-between rounded-2xl border border-gray-200 bg-white px-3 py-2.5 text-xs sm:text-sm font-bold text-gray-700 hover:border-[rgb(0,166,62)] transition-all cursor-pointer"
-                >
-                  <div className="flex items-center gap-1.5">
-                    {formData.unitType === "weight" ? <Scale size={15} className="text-[rgb(0,166,62)]" /> : <Boxes size={15} className="text-blue-500" />}
-                    <span>{formData.unitType === "weight" ? t("weight") : t("quantity")}</span>
-                  </div>
-                  <ChevronDown size={14} className={`transition-transform duration-300 ${isUnitDropdownOpen ? "rotate-180" : ""}`} />
-                </button>
-
-                {isUnitDropdownOpen && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setIsUnitDropdownOpen(false)} />
-                    <div className="absolute start-0 end-0 mt-1 z-20 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
-                      <button
-                        type="button"
-                        onClick={() => { setFormData({ ...formData, unitType: "weight" }); setIsUnitDropdownOpen(false); }}
-                        className="flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
-                      >
-                        <span className="flex items-center gap-2">
-                          <Scale size={14} className="text-[rgb(0,166,62)]" />
-                          {t("weight")}
-                        </span>
-                        {formData.unitType === "weight" && <Check size={16} className="text-[rgb(0,166,62)]" />}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setFormData({ ...formData, unitType: "quantity" }); setIsUnitDropdownOpen(false); }}
-                        className="flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
-                      >
-                        <span className="flex items-center gap-2">
-                          <Boxes size={14} className="text-blue-500" />
-                          {t("quantity")}
-                        </span>
-                        {formData.unitType === "quantity" && <Check size={16} className="text-[rgb(0,166,62)]" />}
-                      </button>
-                    </div>
-                  </>
                 )}
               </div>
 

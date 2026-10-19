@@ -2,7 +2,7 @@ import logoHeader from "../assets/images/logo1.png";
 import logoFooter from "../assets/images/logo3.png";
 
 export const initialAdminData = {
-  isMultiLanguage: true, // 👈 جعلناها false بناءً على طلبك
+  isMultiLanguage: false, // 👈 Controlled by dashboard settings (store_settings.isMultiLanguage)
 
   paymentMethods: {
     cod: true,

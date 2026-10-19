@@ -23,15 +23,15 @@ router.post('/', submitComplaint);
 router.get('/my-tickets', getMyTickets);
 
 // Message edit/delete (admin only) — MUST be before :id routes to avoid conflicts
-router.put('/messages/:messageId', protect, authorizeRoles('super_admin', 'store_manager'), editChatMessage);
-router.delete('/messages/:messageId', protect, authorizeRoles('super_admin', 'store_manager'), deleteChatMessage);
+router.put('/messages/:messageId', protect, authorizeRoles('super_admin', 'store_manager', 'team_member'), editChatMessage);
+router.delete('/messages/:messageId', protect, authorizeRoles('super_admin', 'store_manager', 'team_member'), deleteChatMessage);
 
 // Admin endpoints
-router.get('/', protect, authorizeRoles('super_admin', 'store_manager'), getAllComplaints);
-router.post('/direct-message', protect, authorizeRoles('super_admin', 'store_manager'), sendDirectMessage);
-router.post('/:id/reply', protect, authorizeRoles('super_admin', 'store_manager'), replyToComplaint);
-router.patch('/:id/status', protect, authorizeRoles('super_admin', 'store_manager'), updateComplaintStatus);
-router.delete('/:id', protect, authorizeRoles('super_admin', 'store_manager'), deleteComplaint);
+router.get('/', protect, authorizeRoles('super_admin', 'store_manager', 'team_member'), getAllComplaints);
+router.post('/direct-message', protect, authorizeRoles('super_admin', 'store_manager', 'team_member'), sendDirectMessage);
+router.post('/:id/reply', protect, authorizeRoles('super_admin', 'store_manager', 'team_member'), replyToComplaint);
+router.patch('/:id/status', protect, authorizeRoles('super_admin', 'store_manager', 'team_member'), updateComplaintStatus);
+router.delete('/:id', protect, authorizeRoles('super_admin', 'store_manager', 'team_member'), deleteComplaint);
 
 // Ticket message endpoints (must be last to avoid route conflicts)
 router.get('/:ticketId/messages', getChatMessages);

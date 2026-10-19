@@ -16,18 +16,18 @@ const router = express.Router();
 router.get('/', getAllCategories);
 
 // مسار محمي للأدمن لجلب جميع الأقسام (بما فيها غير النشطة)
-router.get('/admin', protect, authorizeRoles('super_admin', 'store_manager'), getAllCategoriesAdmin);
+router.get('/admin', protect, authorizeRoles('super_admin', 'store_manager', 'team_member'), getAllCategoriesAdmin);
 
 // 🔒 مسار محمي للأدمن والمديرين لإنشاء قسم جديد
-router.post('/', protect, authorizeRoles('super_admin', 'store_manager'), createCategory);
+router.post('/', protect, authorizeRoles('super_admin', 'store_manager', 'team_member'), createCategory);
 
 // 🔒 تحديث قسم
-router.put('/:id', protect, authorizeRoles('super_admin', 'store_manager'), updateCategory);
+router.put('/:id', protect, authorizeRoles('super_admin', 'store_manager', 'team_member'), updateCategory);
 
 // 🔒 حذف قسم
-router.delete('/:id', protect, authorizeRoles('super_admin', 'store_manager'), deleteCategory);
+router.delete('/:id', protect, authorizeRoles('super_admin', 'store_manager', 'team_member'), deleteCategory);
 
 // 🔒 تغيير حالة التنشيط
-router.patch('/:id/status', protect, authorizeRoles('super_admin', 'store_manager'), toggleCategoryStatus);
+router.patch('/:id/status', protect, authorizeRoles('super_admin', 'store_manager', 'team_member'), toggleCategoryStatus);
 
 export default router;

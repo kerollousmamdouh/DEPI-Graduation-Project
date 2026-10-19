@@ -1,11 +1,25 @@
 import db from '../config/db.js';
 
-const toMySQLDatetime = (isoString) => {
-    if (!isoString) return null;
-    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(isoString)) return isoString;
-    const date = new Date(isoString);
-    if (isNaN(date.getTime())) return null;
-    return date.toISOString().slice(0, 19).replace('T', ' ');
+const toMySQLDatetime = (val) => {
+    if (!val) return null;
+    if (val instanceof Date) {
+        const y = val.getFullYear();
+        const m = String(val.getMonth() + 1).padStart(2, '0');
+        const d = String(val.getDate()).padStart(2, '0');
+        const h = String(val.getHours()).padStart(2, '0');
+        const mi = String(val.getMinutes()).padStart(2, '0');
+        const s = String(val.getSeconds()).padStart(2, '0');
+        return `${y}-${m}-${d} ${h}:${mi}:${s}`;
+    }
+    if (typeof val !== 'string') return null;
+    let str = val.trim();
+    if (str.includes('T')) {
+        str = str.replace('T', ' ');
+    }
+    str = str.split('.')[0];
+    str = str.replace('Z', '');
+    str = str.replace(/[+-]\d{2}:?\d{2}$/, '');
+    return str.trim() || null;
 };
 
 // Ensure table and columns exist
@@ -24,6 +38,12 @@ const ensureSchema = async () => {
         title_color VARCHAR(20) NULL DEFAULT '#34d399',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`).catch(() => {});
+    // Migrate old schema: rename title→title_ar, message→message_ar if old columns exist
+    await db.query("ALTER TABLE site_notifications CHANGE COLUMN title title_ar VARCHAR(255) NULL").catch(() => {});
+    await db.query("ALTER TABLE site_notifications CHANGE COLUMN message message_ar TEXT NOT NULL").catch(() => {});
+    // Add missing columns if table was created with old schema
+    await db.query("ALTER TABLE site_notifications ADD COLUMN title_en VARCHAR(255) NULL AFTER message_ar").catch(() => {});
+    await db.query("ALTER TABLE site_notifications ADD COLUMN message_en TEXT NULL AFTER title_en").catch(() => {});
     await db.query("ALTER TABLE site_notifications ADD COLUMN bg_color VARCHAR(20) NULL DEFAULT '#064e3b' AFTER is_active").catch(() => {});
     await db.query("ALTER TABLE site_notifications ADD COLUMN text_color VARCHAR(20) NULL DEFAULT '#f0fdf4' AFTER bg_color").catch(() => {});
     await db.query("ALTER TABLE site_notifications ADD COLUMN title_color VARCHAR(20) NULL DEFAULT '#34d399' AFTER text_color").catch(() => {});

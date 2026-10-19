@@ -39,7 +39,7 @@ export default function HasPermission({
     return (
       <span
         title={t("noPermissionTooltip")}
-        className="pointer-events-none inline-block cursor-not-allowed opacity-40"
+        className="pointer-events-none inline-block grayscale cursor-not-allowed opacity-50 saturate-0"
       >
         {children}
       </span>

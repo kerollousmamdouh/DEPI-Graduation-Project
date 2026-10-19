@@ -7,7 +7,7 @@ const router = express.Router();
 router.post('/', submitContactMessage); // مسار عام لإرسال الشكاوى والاستفسارات
 
 // مسارات إدارة الرسائل للأدمن 🔒
-router.get('/', protect, authorizeRoles('super_admin', 'store_manager'), getAllMessages);
-router.patch('/:id/read', protect, authorizeRoles('super_admin', 'store_manager'), markAsRead);
+router.get('/', protect, authorizeRoles('super_admin', 'store_manager', 'team_member'), getAllMessages);
+router.patch('/:id/read', protect, authorizeRoles('super_admin', 'store_manager', 'team_member'), markAsRead);
 
 export default router;

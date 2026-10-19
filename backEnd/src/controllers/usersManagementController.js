@@ -4,8 +4,12 @@ import bcrypt from 'bcrypt';
 export const getAllUsers = async (req, res) => {
     const lang = req.lang;
     try {
+        // Ensure is_active column exists
+        await db.query("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE AFTER is_verified").catch(() => {});
+
         const [users] = await db.query(
-            `SELECT id, name, email, phone, gender, photo_url, role, is_verified, created_at 
+            `SELECT id, name, email, phone, gender, photo_url, role, is_verified, is_active, created_at,
+                    CASE WHEN is_active = TRUE THEN 'Active' ELSE 'Blocked' END AS status
              FROM users 
              WHERE role = 'customer' 
              ORDER BY created_at DESC`
@@ -105,9 +109,27 @@ export const deleteUser = async (req, res) => {
     const { id } = req.params;
 
     try {
+        // Get the user's email before deleting, to clean up chat history
+        const [userRow] = await db.query('SELECT email FROM users WHERE id = ? AND role = ?', [id, 'customer']);
+        const userEmail = userRow.length > 0 ? userRow[0].email : null;
+
+        // Delete the user account
         await db.query('DELETE FROM users WHERE id = ? AND role = ?', [id, 'customer']);
+
+        // If user had an email, remove their chat history entirely
+        if (userEmail) {
+            // Delete all chat messages for this user's tickets
+            await db.query(
+                `DELETE FROM chat_messages WHERE ticket_id IN 
+                 (SELECT ticket_id FROM contacts WHERE email = ? AND ticket_id IS NOT NULL)`,
+                [userEmail]
+            ).catch(() => {});
+            // Delete the contact/ticket records
+            await db.query('DELETE FROM contacts WHERE email = ?', [userEmail]).catch(() => {});
+        }
+
         res.status(200).json({
-            message: lang === 'en' ? 'User deleted successfully.' : 'تم حذف المستخدم بنجاح.'
+            message: lang === 'en' ? 'User and their chat history deleted successfully.' : 'تم حذف المستخدم وسجل الدردشة بنجاح.'
         });
     } catch (error) {
         res.status(500).json({
@@ -122,19 +144,23 @@ export const toggleUserStatus = async (req, res) => {
     const { id } = req.params;
 
     try {
-        const [existing] = await db.query('SELECT is_verified FROM users WHERE id = ?', [id]);
+        // Ensure is_active column exists
+        await db.query("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE AFTER is_verified").catch(() => {});
+
+        const [existing] = await db.query('SELECT is_active FROM users WHERE id = ?', [id]);
         if (existing.length === 0) {
             return res.status(404).json({
                 message: lang === 'en' ? 'User not found.' : 'المستخدم غير موجود.'
             });
         }
 
-        const newStatus = existing[0].is_verified ? 0 : 1;
-        await db.query('UPDATE users SET is_verified = ? WHERE id = ?', [newStatus, id]);
+        const newStatus = existing[0].is_active ? 0 : 1;
+        await db.query('UPDATE users SET is_active = ? WHERE id = ?', [newStatus, id]);
 
         res.status(200).json({
             message: lang === 'en' ? 'Status updated.' : 'تم تحديث الحالة.',
-            is_verified: newStatus
+            is_active: newStatus,
+            status: newStatus ? "Active" : "Blocked"
         });
     } catch (error) {
         res.status(500).json({

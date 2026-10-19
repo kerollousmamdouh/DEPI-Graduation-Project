@@ -7,7 +7,7 @@ const router = express.Router();
 router.get('/current', getCurrentAnnouncement);
 
 router.use(protect);
-router.use(authorizeRoles('super_admin', 'store_manager'));
+router.use(authorizeRoles('super_admin', 'store_manager', 'team_member'));
 
 router.post('/', publishAnnouncement);
 router.delete('/current', clearAnnouncement);

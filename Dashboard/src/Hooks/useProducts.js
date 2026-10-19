@@ -14,17 +14,26 @@ export function useProducts() {
     queryKey: ["products"],
     queryFn: async () => {
       const raw = await productsService.getProducts();
-      return raw.map(p => ({
-        ...p,
-        name: typeof p.name === 'object' ? p.name : {
-          ar: p.name_ar || p.name || "",
-          en: p.name_en || p.name || "",
-        },
-        categoryId: p.categoryId || p.category_id,
-        offerPrice: p.offerPrice || p.discount_price || null,
-        offerStock: p.offerStock || p.offer_max_quantity || null,
-        offerExpiresAt: p.offerExpiresAt || p.offer_end_at || null,
-      }));
+      return raw
+        .map(p => ({
+          ...p,
+          name: typeof p.name === 'object' ? p.name : {
+            ar: p.name_ar || p.name || "",
+            en: p.name_en || p.name || "",
+          },
+          categoryId: p.categoryId || p.category_id,
+          offerPrice: p.offerPrice || null,
+          offerStock: p.offerStock || p.offer_max_quantity || null,
+          offerStockRemaining: p.offer_stock_remaining ?? null,
+          offerExpiresAt: p.offerExpiresAt || p.offer_end_at || null,
+          isActive: p.is_active !== undefined ? !!p.is_active : true,
+        }))
+        // ⚠️ We fetch with `all=true` so admins can act on out-of-stock products too, but a
+        // deleted product (is_active = false — set instead of a hard delete when it has past
+        // orders, to keep order history intact) must disappear from the dashboard entirely,
+        // regardless of those orders. Filtering here — not just in the page-level render —
+        // keeps every consumer of this list (total count, category counts, the grid) in sync.
+        .filter(p => p.isActive);
     },
   });
 
@@ -49,11 +58,10 @@ export function useProducts() {
   // حذف منتج (Delete)
   const deleteMutation = useMutation({
     mutationFn: productsService.deleteProduct,
-    onSuccess: (id) => {
-      queryClient.setQueryData(["products"], (old = []) =>
-        old.filter((p) => p.id !== id)
-      );
-      toast.success("تم حذف المنتج بنجاح");
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      const msg = res?.message || "تم حذف المنتج بنجاح";
+      toast.success(msg);
     },
     onError: () => toast.error("حدث خطأ أثناء الحذف"),
   });

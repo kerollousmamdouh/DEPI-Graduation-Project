@@ -38,7 +38,14 @@ export const createDeal = async (req, res) => {
                 discount_price = ?, offer_start_at = ?, offer_end_at = ?, 
                 offer_until_stock_out = ?, offer_max_quantity = ?
              WHERE id = ?`,
-            [discount_price, offer_start_at || null, offer_end_at || null, offer_until_stock_out ? 1 : 0, offer_max_quantity || null, product_id]
+            [
+                discount_price,
+                offer_start_at || null,
+                offer_end_at || null,
+                offer_until_stock_out ? 1 : 0,
+                offer_max_quantity || null,
+                product_id
+            ]
         );
 
         res.status(201).json({
@@ -63,7 +70,14 @@ export const updateDeal = async (req, res) => {
                 discount_price = ?, offer_start_at = ?, offer_end_at = ?, 
                 offer_until_stock_out = ?, offer_max_quantity = ?
              WHERE id = ?`,
-            [discount_price, offer_start_at || null, offer_end_at || null, offer_until_stock_out ? 1 : 0, offer_max_quantity || null, id]
+            [
+                discount_price,
+                offer_start_at || null,
+                offer_end_at || null,
+                offer_until_stock_out ? 1 : 0,
+                offer_max_quantity || null,
+                id
+            ]
         );
 
         res.status(200).json({
@@ -83,7 +97,7 @@ export const deleteDeal = async (req, res) => {
 
     try {
         await db.query(
-            'UPDATE products SET discount_price = NULL, offer_start_at = NULL, offer_end_at = NULL, offer_until_stock_out = FALSE, offer_max_quantity = NULL WHERE id = ?',
+            'UPDATE products SET discount_price = NULL, offer_start_at = NULL, offer_end_at = NULL, offer_until_stock_out = FALSE, offer_max_quantity = NULL, offer_stock_remaining = NULL WHERE id = ?',
             [id]
         );
 

@@ -7,6 +7,6 @@ const router = express.Router();
 router.get('/:entity_type/:entity_id', getSeoDetails); // مسار عام للـ Frontend والـ SSR
 
 // مسار الأدمن لحفظ وتعديل السيو 🔒
-router.post('/', protect, authorizeRoles('super_admin', 'store_manager'), saveSeoDetails);
+router.post('/', protect, authorizeRoles('super_admin', 'store_manager', 'team_member'), saveSeoDetails);
 
 export default router;

@@ -2,12 +2,14 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import db from './config/db.js';
 
 // استدعاء الروتس السابقة
 import authRoutes from './routes/authRoutes.js';
+import dashboardAuthRoutes from './routes/dashboardAuthRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
@@ -62,10 +64,10 @@ const langMiddleware = (req, res, next) => {
     next();
 };
 
-// Rate limiter
+// Rate limiter — skips /api/auth/dashboard entirely
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 2000, // 2000 requests per 15 min (Dashboard polling + normal usage)
+    windowMs: 15 * 60 * 1000,
+    max: 2000,
     handler: (req, res) => {
         res.status(429).json({
             message: req.lang === 'en' 
@@ -75,10 +77,12 @@ const limiter = rateLimit({
     }
 });
 
-// Auth-specific: more generous limit for login attempts
-const authLimiter = rateLimit({
+// Auth-specific: strict limit for storefront login/register attempts
+// Skip dashboard auth — those routes have their own handler mounted earlier
+const storefrontAuthLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 50, // 50 login attempts per 15 min
+    max: 50,
+    skip: (req) => req.originalUrl.includes('/auth/dashboard'),
     handler: (req, res) => {
         res.status(429).json({
             message: req.lang === 'en'
@@ -89,16 +93,25 @@ const authLimiter = rateLimit({
 });
 
 // Middlewares
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
+app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use(langMiddleware);
-app.use('/api/', limiter);
-app.use('/api/auth', authLimiter);
 
-// ربط المسارات بالـ API الأساسي
-app.use('/api/auth', authRoutes);
+// Dashboard auth — mounted BEFORE all rate limiters with NO limiter at all.
+// This way Express sends the response here and never reaches the limiters below.
+app.use('/api/auth/dashboard', dashboardAuthRoutes);
+
+// Global rate limiter — applied to ALL /api/ routes EXCEPT dashboard auth
+app.use('/api/', (req, res, next) => {
+    if (req.originalUrl.startsWith('/api/auth/dashboard')) return next();
+    return limiter(req, res, next);
+});
+
+// Storefront auth — strict rate limit
+app.use('/api/auth', storefrontAuthLimiter, authRoutes);
 app.use('/api/categories', categoryRoutes);
 // مسار الأكثر مبيعاً يجب أن يكون قبل /api/products عشان ما يتداخلش مع الـ wildcard
 app.use('/api/products/best-sellers', bestSellersRoutes);
